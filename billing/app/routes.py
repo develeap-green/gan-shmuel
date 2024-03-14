@@ -1,12 +1,14 @@
 
-from flask import Flask, request, jsonify, abort
+from flask import Flask, abort, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from app import app, db
+import requests
 import os
 
 app = Flask(__name__)
 
 # Check if we are in a testing environment
-    # Use an SQLite in-memory database for testing
+    # Use an SQL in-memory database for testing
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
 
 #  MySQL for development/production
@@ -26,11 +28,11 @@ class Provider(db.Model):
 @app.route('/provider/<int:providerId>', methods=['PUT'])
 def updateProvider(providerId):
     # Attempt to retrieve the 'name' value from the JSON payload in the PUT request
+
     updateName = request.json.get('name', None)
     if not updateName:
         # If 'name' is not provided or is empty, return a 400 Bad Request error
-        abort(400, 'The name field is required.')
-    
+        abort(400, 'The name field is required.')    
     # Find the provider by ID
     provider = Provider.query.get(providerId)
     
@@ -48,6 +50,7 @@ def updateProvider(providerId):
     except Exception as err:
         db.session.rollback()  # Roll back the transaction in case of error
         # Then, return a 500 Internal Server Error with the error message
+
         abort(500, f'An error occurred: {str(err)}')
 
 
@@ -86,4 +89,5 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all() 
     app.run(debug=True)
+
 
