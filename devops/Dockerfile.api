@@ -1,0 +1,14 @@
+# Python
+FROM python:3.10
+
+WORKDIR /app
+
+# Copy and install dependencies
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Copy application directory
+COPY . .
+
+# Run Flask -- CMD ["flask", "run", "--host=0.0.0.0"]
+CMD ["gunicorn", "run:app", "--bind", "0.0.0.0:5000", "--workers", "4"]
