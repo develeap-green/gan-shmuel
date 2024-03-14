@@ -1,30 +1,56 @@
-from app import app
 
-from flask import Flask, abort, request, jsonify
-from flask_mysqldb import MySQL
-import requests
+from flask import Flask, request, jsonify, abort
+from flask_sqlalchemy import SQLAlchemy
+import os
 
 app = Flask(__name__)
 
+# Check if we are in a testing environment
+    # Use an SQLite in-memory database for testing
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
 
-@app.route('/provider/<providerId>', methods=['PUT'])
+#  MySQL for development/production
+# app.config['SQLALCHEMY_DATABASE_URI'] = ''
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize the SQLAlchemy extension with the Flask app
+db = SQLAlchemy(app)
+
+# Define the Provider model
+class Provider(db.Model):
+    __tablename__ = 'Provider'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+
+@app.route('/provider/<int:providerId>', methods=['PUT'])
 def updateProvider(providerId):
-    cur = MySQL.connection.cursor()
+    # Attempt to retrieve the 'name' value from the JSON payload in the PUT request
     updateName = request.json.get('name', None)
-    if updateName is None or updateName == '':
+    if not updateName:
+        # If 'name' is not provided or is empty, return a 400 Bad Request error
         abort(400, 'The name field is required.')
     
-    existing_provider = cur.execute('SELECT id FROM Provider WHERE id = %s', (providerId,))
-    existing_provider = cur.fetchone()
-
-    if not existing_provider:
+    # Find the provider by ID
+    provider = Provider.query.get(providerId)
+    
+    # If the provider does not exist, return a 404 Not Found error
+    if provider is None:
         abort(404, f'Provider with id {providerId} does not exist.')
 
     try:
-        cur.execute('UPDATE Provider SET name = %s WHERE id = %s', (updateName, providerId))
+        # Update the provider's name with the new name provided in the PUT request
+        provider.name = updateName
+        db.session.commit()  # Commit the transaction to save the changes in the database
+        
+        # Return a success message with a 200 OK status code
         return jsonify({'message': 'Provider updated successfully.'}), 200
     except Exception as err:
+        db.session.rollback()  # Roll back the transaction in case of error
+        # Then, return a 500 Internal Server Error with the error message
         abort(500, f'An error occurred: {str(err)}')
+
+
 
 
 
@@ -57,4 +83,7 @@ def health_check():
 
     
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all() 
     app.run(debug=True)
+
