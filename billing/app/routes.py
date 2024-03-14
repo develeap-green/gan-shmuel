@@ -1,4 +1,3 @@
-
 from flask import Flask, abort, request, jsonify
 from app import app, db
 from flask_mysqldb import MySQL
@@ -26,16 +25,16 @@ class Provider(db.Model):
 
 @app.route('/provider/<int:providerId>', methods=['PUT'])
 def updateProvider(providerId):
-<<<<<<< HEAD
+
     # Attempt to retrieve the 'name' value from the JSON payload in the PUT request
 
     updateName = request.json.get('name', None)
     if not updateName:
         # If 'name' is not provided or is empty, return a 400 Bad Request error
-        abort(400, 'The name field is required.')    
+        abort(400, 'The name field is required.')
     # Find the provider by ID
     provider = Provider.query.get(providerId)
-    
+
     # If the provider does not exist, return a 404 Not Found error
     if provider is None:
         abort(404, f'Provider with id {providerId} does not exist.')
@@ -44,7 +43,7 @@ def updateProvider(providerId):
         # Update the provider's name with the new name provided in the PUT request
         provider.name = updateName
         db.session.commit()  # Commit the transaction to save the changes in the database
-        
+
         # Return a success message with a 200 OK status code
         return jsonify({'message': 'Provider updated successfully.'}), 200
     except Exception as err:
@@ -83,7 +82,7 @@ def health_check():
     else: #if resource not found or not good
         return {"status": "Failure", "statusCode": "500 Internal Server Error"}
 
-    
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all() 
