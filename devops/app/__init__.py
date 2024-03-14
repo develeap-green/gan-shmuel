@@ -17,18 +17,6 @@ logger.info('Initializing Flask app')
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
 
-# CORS config
-allowed_origins = [
-    "http://localhost:8080",
-    BASE_URL
-]
-cors = CORS(app, resources={
-    r"/*": {
-        "origins": allowed_origins,
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    }
-})
-
 # Import routes
 logger.info('Importing routes')
 from app import routes
