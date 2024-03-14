@@ -1,11 +1,10 @@
 
 from flask import Flask, abort, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from app import app, db
+from flask_mysqldb import MySQL
 import requests
 import os
 
-app = Flask(__name__)
 
 # Check if we are in a testing environment
     # Use an SQL in-memory database for testing
@@ -27,6 +26,7 @@ class Provider(db.Model):
 
 @app.route('/provider/<int:providerId>', methods=['PUT'])
 def updateProvider(providerId):
+<<<<<<< HEAD
     # Attempt to retrieve the 'name' value from the JSON payload in the PUT request
 
     updateName = request.json.get('name', None)
@@ -50,7 +50,6 @@ def updateProvider(providerId):
     except Exception as err:
         db.session.rollback()  # Roll back the transaction in case of error
         # Then, return a 500 Internal Server Error with the error message
-
         abort(500, f'An error occurred: {str(err)}')
 
 
@@ -89,5 +88,3 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all() 
     app.run(debug=True)
-
-
