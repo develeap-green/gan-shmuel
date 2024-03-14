@@ -23,11 +23,10 @@
 **/.pytest_cache/
 **/cover/
 
-
 # Flask stuff:
 **/instance/
 **/.webassets-cache
-
+**/__pycache__
 
 # Environments
 **/.env
