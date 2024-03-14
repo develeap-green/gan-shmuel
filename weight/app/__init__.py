@@ -1,10 +1,18 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+import os
+
+MYSQL_USER = os.environ.get('MYSQL_USER')
+MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD')
+MYSQL_HOST = os.environ.get('MYSQL_HOST')
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://sql-user:sql-password@db/db'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/weight'
 
 db = SQLAlchemy()
 
-import models
+
+from app.models import ContainersRegistered, Transactions
+
+db.init_app(app)
 

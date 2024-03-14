@@ -23,6 +23,8 @@ class Transactions(db.Model):
     truckTara = db.Column(db.Integer)
     neto = db.Column(db.Integer) #"neto": <int> or "na" // na if some of containers unknown
     produce = db.Column(db.String(50))
+    session_id = db.Column(db.Integer)
+
 
     def __repr__(self):
         return f'<Transaction {self.id}>'
