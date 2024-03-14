@@ -1,10 +1,8 @@
-
-
 from flask import Flask, abort, request, jsonify
+from app import app, db
 from flask_mysqldb import MySQL
 import requests
 
-app = Flask(__name__)
 
 
 @app.route('/provider/<providerId>', methods=['PUT'])
