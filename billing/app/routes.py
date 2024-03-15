@@ -1,13 +1,13 @@
-from flask import Flask, abort, request, jsonify
-from app import app, db
-from flask_mysqldb import MySQL
+from flask import abort, request, jsonify
+from app import app, db, Flask
+from flask_sqlalchemy import SQLAlchemy
 import requests
-import os
 
 
 # Check if we are in a testing environment
-    # Use an SQL in-memory database for testing
+# Use an SQL in-memory database for testing
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+
 
 #  MySQL for development/production
 # app.config['SQLALCHEMY_DATABASE_URI'] = ''
@@ -17,11 +17,19 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Initialize the SQLAlchemy extension with the Flask app
 db = SQLAlchemy(app)
 
-# Define the Provider model
+
+# Root route for testing purposes
+@app.route('/')
+def root():
+    return "jsonify({'message': 'Welcome to the Billing API'}), 200"
+
+
+# # Define the Provider model
 class Provider(db.Model):
     __tablename__ = 'Provider'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
+
 
 @app.route('/provider/<int:providerId>', methods=['PUT'])
 def updateProvider(providerId):
@@ -52,13 +60,11 @@ def updateProvider(providerId):
         abort(500, f'An error occurred: {str(err)}')
 
 
-
-
-
 # Until we get db name / ip that for testing
 #resource = "http://127.0.0.1:5000/health"
 #resource = "https://www.goofhjjstgle.com/"
 resource = "https://www.google.com/"
+
 
 # Check if DB healthy
 def checkResource(resource):
@@ -73,17 +79,18 @@ def checkResource(resource):
     except requests.RequestException:
         return "Failure"
 
+
 # Get request check if db is up
 @app.route("/health",methods=["GET"])
 def health_check():
     resourceStatus = checkResource(resource) # Call checkResource function and check status
-    if request.method == "GET" and resourceStatus == "OK": #if resource found
+    if request.method == "GET" and resourceStatus == "OK": # if resource found
         return {"status": "OK", "statusCode": "200 OK", }
-    else: #if resource not found or not good
+    else: # if resource not found or not good
         return {"status": "Failure", "statusCode": "500 Internal Server Error"}
 
 
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all() 
+        db.create_all()
     app.run(debug=True)
