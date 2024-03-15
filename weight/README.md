@@ -1,4 +1,4 @@
-# Gan Shmuel - Weight Microservice API 
+# Gan Shmuel - Weight Microservice
 > The Weight Microservice is responsible for the industrial weighing of trucks, facilitating the payment process to providers based on the cargo's net weight.
 > The application, WeightApp, maintains a record of all weights, ensuring payments are calculated accurately.
 > Reminder: `Bruto = Neto (fruit) + Tara (truck) + sum(Tara (containers))`
@@ -149,6 +149,6 @@
 
 * Returns "OK" with a 200 OK status by default.
 * If the system depends on external resources (e.g., a database) and they are not available, it returns "Failure" with a 500 Internal Server Error.
-* This API specification ensures a comprehensive approach to managing and recording the weights of trucks and containers, facilitating efficient and accurate payments to providers.
+
 
 
