@@ -16,3 +16,4 @@ from app.models import ContainersRegistered, Transactions
 
 db.init_app(app)
 
+from app import routes
