@@ -3,4 +3,3 @@ Flask-SQLAlchemy
 pymysql
 python-dotenv
 cryptography
-Flask-MySQLdb
