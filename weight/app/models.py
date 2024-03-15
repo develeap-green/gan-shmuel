@@ -28,3 +28,19 @@ class Transactions(db.Model):
 
     def __repr__(self):
         return f'<Transaction {self.id}>'
+    
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "datetime": self.datetime,
+            "direction": self.direction,
+            "truck": self.truck,
+            "containers": self.containers,
+            "bruto": self.bruto,
+            "truckTara": self.truckTara,
+            "neto": self.neto,
+            "produce": self.produce,
+            "session_id": self.session_id,
+        }
+
