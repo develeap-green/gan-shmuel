@@ -5,6 +5,9 @@ services:
       - "5000:5000"
     environment:
       - MYSQL_HOST=db
+      - MYSQL_HOST=db
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pass
     depends_on:
       - db
   db:

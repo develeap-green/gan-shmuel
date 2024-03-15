@@ -4,10 +4,15 @@ import os
 
 app = Flask(__name__)
 
-MYSQL_USER = os.environ.get('MYSQL_USER')
-MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD')
-MYSQL_HOST = os.environ.get('MYSQL_HOST')
+# Retrieve MySQL environment variables from Docker Compose
+MYSQL_HOST = os.environ.get('MYSQL_HOST', 'db')  # Default to localhost if not provided
+MYSQL_USER = os.environ.get('MYSQL_USER', 'user')       # Default to 'user' if not provided
+MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', 'pass')  # Default to 'pass' if not provided
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://sql-user:sql-password@db/db'
+# Configure SQLAlchemy database URI using the environment variables
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/billing'
 
-db = SQLAlchemy()
+# Suppress SQLAlchemy deprecation warnings
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
