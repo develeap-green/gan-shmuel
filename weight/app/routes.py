@@ -1,13 +1,5 @@
-<<<<<<< HEAD
 from flask import jsonify, request
 from app import app, db
-=======
-from app import app
-from flask import request
-from app import db
-from app.models import Transactions, ContainersRegistered
-from datetime import datetime
->>>>>>> weight-main
 from sqlalchemy.sql import text
 import logging
 from http import HTTPStatus
