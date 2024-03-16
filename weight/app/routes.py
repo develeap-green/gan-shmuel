@@ -5,37 +5,60 @@ import logging
 from http import HTTPStatus
 from datetime import datetime
 from app.models import Transactions
+from datetime import datetime
+import random
 
 
-# @app.route('/weight', methods=['POST'])
-# def handle_post():
+@app.route('/weight', methods=['POST'])
+def handle_post():
+     # TODO ERROR HANDLING
+    # try:
+        data = request.get_json()
+        curr_direction = data['direction']
+        new_session_id = random.random() * random.random()
+        # TODO take later form csv
+        sum_tara_containaris = 500
+        # get last truck session
+        results = Transactions.query.filter_by(truck = data['truck']).order_by(Transactions.datetime.desc())
+        if results.count() > 1:
+            last_session_id = results[0].session_id
+            last_direction = results[0].direction   
+        response = {
+            "truck": data["truck"],
+        }
+        # if in == in out == out
+        if last_direction == curr_direction:
+            if data["force"] == "false":
+                return f"force is false, last_direction {last_direction} , curr_direction {curr_direction}"
+            # force update a record
+            else:
+                if data["direction"] in ["in", "none"]:
+                    new_session_id = random.random()
+                    bruto = data["weight"]
+                    response["bruto"] = bruto
 
-#         data = request.get_json()
-
-#         if request.json['direction'] in ["none", "in"]:
-        
-#         transaction_obj = Transactions(
-#             direction = data['direction'],
-#             truck = data['truck'],
-#             containers = data['containers'],
-#             produce = data['produce'],
-#             datetime = date_time.now(),
-#             session_id = auto_increment_number,
-#         )
-#         try:
-#             db.session.add(transaction_obj)
-#             db.session.commit()
-#         except Exception as err:
-#              logging.error(f"Error happened! {err}")
-#         response_data = {
-#             "id": "TEST",
-#             "truck": "T-1234",
-#             "bruto": 5000
-#         }
-    
-#         return response_data
-
-# GET 
+                # direction is out
+                else:
+                    truck_tara = data["weight"]
+                    neto = bruto - truck_tara - sum_tara_containaris
+                    new_session_id = last_session_id
+                    response["truck_tara"] = truck_tara
+                    response["neto"] = neto
+        #  last session direction != req direction
+        trasn_obj = Transactions(
+                    direction = data['direction'],
+                    truck = data['truck'],
+                    containers = data['containers'],
+                    produce = data['produce'],
+                    datetime = datetime.now(),
+                    session_id = new_session_id,
+                    )
+                
+        db.session.add(trasn_obj)
+        db.session.commit()
+        return response
+    # except:
+    #     return "error"
 
 @app.route('/session/<int:id>', methods=['GET'])
 def get_session(id):
