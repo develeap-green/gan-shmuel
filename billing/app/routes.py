@@ -12,19 +12,20 @@ def root():
     return jsonify({'message': 'Welcome to the Billing API'}), 200
 
 
+# Route to create a provider
 @app.route('/provider', methods=["POST"])
 def createProvider():
     # Store the provider POST request
     requestData = request.get_json()
 
-    # Return 400 error if no name is given in the request
-    if "name" not in requestData:
-        return jsonify({"error": "Missing name"}), 400
+    # Return 400 error if no name is given in the request. 
+    # Check for empty or whitespace only string.
+    name = requestData.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "Missing name in request or name is empty."}), 400
 
-    name = requestData["name"]
     # Check if provider name exists, return 409 status code if it does.
     existingProvider = Provider.query.filter_by(name=name).first()
-
     if existingProvider:
         return jsonify({"Error": f"Provider {name} already exists."}), 409
 
