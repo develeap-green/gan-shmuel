@@ -1,34 +1,38 @@
+from sqlalchemy.orm import declarative_base, Mapped, mapped_column
+from sqlalchemy import String, Integer, DateTime
+from typing import Optional
 
-from app import db
+Base = declarative_base()
 
-class ContainersRegistered(db.Model):
+
+class ContainersRegistered(Base):
     __tablename__ = 'containers_registered'
-    
-    container_id = db.Column(db.String(15), primary_key=True)
-    weight = db.Column(db.Integer)
-    unit = db.Column(db.String(10))
+
+    container_id: Mapped[str] = mapped_column(String(15), primary_key=True)
+    weight: Mapped[Optional[int]] = mapped_column(Integer)
+    unit: Mapped[Optional[str]] = mapped_column(String(10))
 
     def __repr__(self):
         return f'<Container {self.container_id}>'
 
-class Transactions(db.Model):
-    __tablename__ = 'transactions'
-    
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    datetime = db.Column(db.DateTime)
-    direction = db.Column(db.String(10))
-    truck = db.Column(db.String(50))
-    containers = db.Column(db.String(10000))  
-    bruto = db.Column(db.Integer)
-    truckTara = db.Column(db.Integer)
-    neto = db.Column(db.Integer) #"neto": <int> or "na" // na if some of containers unknown
-    produce = db.Column(db.String(50))
-    session_id = db.Column(db.Integer)
 
+class Transactions(Base):
+    __tablename__ = 'transactions'
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True)
+    datetime: Mapped[Optional[DateTime]] = mapped_column(DateTime)
+    direction: Mapped[Optional[str]] = mapped_column(String(10))
+    truck: Mapped[Optional[str]] = mapped_column(String(50))
+    containers: Mapped[Optional[str]] = mapped_column(String(10000))
+    bruto: Mapped[Optional[int]] = mapped_column(Integer)
+    truckTara: Mapped[Optional[int]] = mapped_column(Integer)
+    neto: Mapped[Optional[int]] = mapped_column(Integer)
+    produce: Mapped[Optional[str]] = mapped_column(String(50))
+    session_id: Mapped[Optional[int]] = mapped_column(Integer)
 
     def __repr__(self):
         return f'<Transaction {self.id}>'
-    
 
     def to_dict(self):
         return {
@@ -43,4 +47,3 @@ class Transactions(db.Model):
             "produce": self.produce,
             "session_id": self.session_id,
         }
-

@@ -1,3 +1,4 @@
+from venv import logger
 from flask import jsonify, request
 from app import app, db
 from sqlalchemy.sql import text
@@ -76,46 +77,42 @@ def get_session(id):
             return "404 no session id"
             
 
+@app.route('/weight')
+def retrieve_weight_list():
+    try:
+        now = datetime.now()
+
+        _filter = request.args.get('filter', 'in,out,none')
+        _from = request.args.get('from', now.replace(
+            hour=0, minute=0, second=0).strftime("%Y%m%d%H%M%S"))
+        to = request.args.get('to', now.strftime("%Y%m%d%H%M%S"))
+
+        _from = datetime.strptime(_from, "%Y%m%d%H%M%S")
+        to = datetime.strptime(to, "%Y%m%d%H%M%S")
+
+    except ValueError as err:
+        logger.error(f"Error: bad values passed into {request.args}: {err}")
+        return "", HTTPStatus.UNPROCESSABLE_ENTITY
+
+    transactions = db.session.query(Transactions).filter(Transactions.datetime >= _from,
+                                                         Transactions.datetime <= to,
+                                                         Transactions.direction.in_(_filter.split(','))).all()
+
+    res = [transaction.to_dict() for transaction in transactions]
+
+    if not res:
+        return '', HTTPStatus.NOT_FOUND
+
+    return jsonify(res), HTTPStatus.OK
+
     
     
 @app.route('/health')
 def health_check():
     try:
         db.session.execute(text('SELECT 1'))
-        db.session.close()  
         return '', HTTPStatus.OK
-    
+
     except Exception as err:
         logging.error(f"Database connection error: {err}")
         return '', HTTPStatus.SERVICE_UNAVAILABLE
-
-@app.route('/weight')
-def retrieve_weight_list():
-    try:
-        _from = request.args.get('from')
-        to = request.args.get('to')
-        _filter =  request.args.get('filter', 'in,out,none')
-
-        logging.info(f"from: {_from}, to: {to}, filter: {_filter}")
-
-        _from = datetime.strptime(_from, "%Y%m%d%H%M%S")
-        to = datetime.strptime(to, "%Y%m%d%H%M%S")
-
-    except KeyError as err:
-        logging.error(f"Bad query params keys: {err}")
-        return '', HTTPStatus.BAD_REQUEST
-    except ValueError as err:
-        logging.error(f"Bad query params values: {err}")
-    
-    else:
-        query = Transactions.query.filter(Transactions.datetime >= _from,
-                                        Transactions.datetime <= to)
-        
-        transactions = query.filter(Transactions.direction.ilike(_filter)).all()
-        
-        res = [transaction.to_dict() for transaction in transactions]
-        
-        if not res:
-            return '', HTTPStatus.NOT_FOUND
-        
-        return jsonify(res), HTTPStatus.OK
