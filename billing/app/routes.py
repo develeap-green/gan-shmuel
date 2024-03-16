@@ -9,7 +9,62 @@ from app.models import Provider
 def root():
     return jsonify({'message': 'Welcome to the Billing API'}), 200
 
-# Moved the provider.midel to models.py
+# Moved the provider.model to models.py
+
+# Route to create a new provider - Local version until there's a DB connection
+data = []
+currentId = 10001
+
+@app.route('/provider', methods=["POST"])
+def createProvider():
+    global data
+    requestData = request.get_json()        # Store the provider POST request
+
+    # Return 400 error if no name is given in the request
+    if "name" not in requestData:
+        return jsonify({"error": "Missing name"}), 400
+
+    name = requestData["name"]
+
+    # Check if provider name exists, return 409 status code if it does.
+    if any(entry["name"] == name for entry in data):
+        return jsonify({"Error": f"Provider {name} already exists."}), 409
+    
+    id = setNewProviderId()                 # Set new provider id
+    data.append({"id": id, "name": name})   # Add new provider with id and name to data 
+
+    return jsonify({"message": f"Provider {name} with ID {id} added successfully."}), 201   # Return 201 status code if created successfully
+
+# Set new provider ID - for local createProvider, can be removed after db connection
+def setNewProviderId():
+    global currentId
+    id = currentId
+    currentId += 1
+    return id
+
+# # createProvider when db available, needs to be tested
+# @app.route('/provider', methods=["POST"])
+# def createProvider():
+#     # Store the provider POST request
+#     requestData = request.get_json()
+
+#     # Return 400 error if no name is given in the request
+#     if "name" not in requestData:
+#         return jsonify({"error": "Missing name"}), 400
+
+#     name = requestData["name"]
+#     # Check if provider name exists, return 409 status code if it does.
+#     existingProvider = Provider.query.filter_by(name=name).first()
+
+#     if existingProvider:
+#         return jsonify({"Error": f"Provider {name} already exists."}), 409
+    
+#     newProvider = Provider(name=name)
+
+#     db.session.add(newProvider)
+#     db.session.commit()
+
+#     return jsonify({"message": f"Provider {name} with ID {newProvider.id} added successfully."}), 201
 
 
 # Route to update a provider
