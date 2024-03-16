@@ -1,3 +1,4 @@
+from venv import logger
 from flask import jsonify, request
 from app import app, db
 from sqlalchemy.sql import text
@@ -6,96 +7,42 @@ from http import HTTPStatus
 from datetime import datetime
 from app.models import Transactions
 
-auto_increment_number = 0
-date_time = datetime.now()
-format = '%Y-%m-%d %H:%M:%S'
 
-def generate_new_session_id():
-    global auto_increment_number
-    auto_increment_number += 1
-    return auto_increment_number
-
-@app.route('/')
-def example():
-    return 200
-
-@app.route('/weight', methods=['POST'])
-def handle_post():
+@app.route('/weight')
+def retrieve_weight_list():
     try:
-        if request.json['direction'] in ["none", "in"]:
-            generate_new_session_id()
-        
-        transaction_obj = Transactions(
-            direction=request.json['direction'],
-            truck=request.json['truck'],
-            containers=request.json['containers'],
-            produce=request.json['produce'],
-            session_id = auto_increment_number,
-            datetime=date_time.strftime(format)     
-        )
-        
-        container_obj = ContainersRegistered(
-            weight=int(request.json['weight']),
-            unit=request.json['unit']
-        )
-        db.session.add(container_obj)
+        now = datetime.now()
 
-        if request.json['direction']  == 'out':
-            transaction_obj.truckTara
-            transaction_obj.neto
+        _filter = request.args.get('filter', 'in,out,none')
+        _from = request.args.get('from', now.replace(
+            hour=0, minute=0, second=0).strftime("%Y%m%d%H%M%S"))
+        to = request.args.get('to', now.strftime("%Y%m%d%H%M%S"))
 
-        db.session.add(transaction_obj)
-        db.session.add(container_obj)
-        db.session.commit()
+        _from = datetime.strptime(_from, "%Y%m%d%H%M%S")
+        to = datetime.strptime(to, "%Y%m%d%H%M%S")
 
-        response_data = {
-            "id": transaction_obj.id,
-            "truck": transaction_obj.truck,
-            "bruto": transaction_obj.bruto
-        }
-    
-        return response_data
-    except Exception:
-        return "error happend"
+    except ValueError as err:
+        logger.error(f"Error: bad values passed into {request.args}: {err}")
+        return "", HTTPStatus.UNPROCESSABLE_ENTITY
+
+    transactions = db.session.query(Transactions).filter(Transactions.datetime >= _from,
+                                                         Transactions.datetime <= to,
+                                                         Transactions.direction.in_(_filter.split(','))).all()
+
+    res = [transaction.to_dict() for transaction in transactions]
+
+    if not res:
+        return '', HTTPStatus.NOT_FOUND
+
+    return jsonify(res), HTTPStatus.OK
+
 
 @app.route('/health')
 def health_check():
     try:
         db.session.execute(text('SELECT 1'))
-        db.session.close()  
         return '', HTTPStatus.OK
-    
+
     except Exception as err:
         logging.error(f"Database connection error: {err}")
         return '', HTTPStatus.SERVICE_UNAVAILABLE
-
-@app.route('/weight')
-def retrieve_weight_list():
-    try:
-        _from = request.args.get('from')
-        to = request.args.get('to')
-        _filter =  request.args.get('filter', 'in,out,none')
-
-        logging.info(f"from: {_from}, to: {to}, filter: {_filter}")
-
-        _from = datetime.strptime(_from, "%Y%m%d%H%M%S")
-        to = datetime.strptime(to, "%Y%m%d%H%M%S")
-
-    except KeyError as err:
-        logging.error(f"Bad query params keys: {err}")
-        return '', HTTPStatus.BAD_REQUEST
-    except ValueError as err:
-        logging.error(f"Bad query params values: {err}")
-    
-    else:
-        query = Transactions.query.filter(Transactions.datetime >= _from,
-                                        Transactions.datetime <= to)
-        
-        transactions = query.filter(Transactions.direction.ilike(_filter)).all()
-        
-        res = [transaction.to_dict() for transaction in transactions]
-        
-        if not res:
-            return '', HTTPStatus.NOT_FOUND
-        
-        return jsonify(res), HTTPStatus.OK
