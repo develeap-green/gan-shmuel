@@ -92,7 +92,7 @@
 
 [
   {
-    "id": "session_id",
+    "id": "id",
     "direction": "in/out/none",
     "bruto": "total_weight",
     "neto": "net_weight or na (if some container taras are unknown)",
