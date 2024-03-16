@@ -1,14 +1,24 @@
-NOTE: The flask app and the DB aren't connected to each other yet, didn't change the code except for adding a home route and some ordering.
-
 How to use the docker-compose to set a MYSQL & Flask containers:
 
 1. docker compose up --build
 	It builds and starts both containers named: billing-api-1, billing-db-1
 
 2. To test the flask app: 
-	localhost:5000/ or localhost:5000/health
+	localhost:5000/health
 
-3. To test the DB initialization and creating sample tables:
+3. To test the DB and print its contents:
+    localhost:5000/tables
+
+4. To test the routes use Postman.
+   Example:
+        URL: http://localhost:5000/provider
+        Method: POST
+        Body (raw JSON):
+            {
+              "name": "New Provider"
+            }
+
+5. To MANUALLY test the DB initialization and creating sample tables:
 	docker exec -it billing-db-1 /bin/bash
 	docker exec -it billing-db-1 mysql -u root -p
 	password: pass
@@ -46,7 +56,5 @@ How to use the docker-compose to set a MYSQL & Flask containers:
 		| 10003 | Provider 3 |
 		+-------+------------+
 		3 rows in set (0.00 sec)
-
-If anything doesn't work and you don't see why, contant me!
 
 Roey
