@@ -6,54 +6,55 @@ from http import HTTPStatus
 from datetime import datetime
 from app.models import Transactions
 
-auto_increment_number = 0
-date_time = datetime.now()
-format = '%Y-%m-%d %H:%M:%S'
 
-def generate_new_session_id():
-    global auto_increment_number
-    auto_increment_number += 1
-    return auto_increment_number
+# @app.route('/weight', methods=['POST'])
+# def handle_post():
 
-@app.route('/')
-def example():
-    return 200
+#         data = request.get_json()
 
-
-@app.route('/weight', methods=['POST'])
-def handle_post():
-
-        data = request.get_json()
-
-        if request.json['direction'] in ["none", "in"]:
-            generate_new_session_id()
+#         if request.json['direction'] in ["none", "in"]:
         
-        transaction_obj = Transactions(
-            direction = data['direction'],
-            truck = data['truck'],
-            containers = data['containers'],
-            produce = data['produce'],
-            datetime = date_time.now(),
-            session_id = auto_increment_number,
-        )
-
-        # if request.json['direction']  == 'out':
-            # transaction_obj.truckTara
-            # transaction_obj.neto
-        try:
-            db.session.add(transaction_obj)
-            db.session.commit()
-        except Exception as err:
-             logging.error(f"Error happened! {err}")
-        response_data = {
-            "id": "TEST",
-            "truck": "T-1234",
-            "bruto": 5000
-        }
+#         transaction_obj = Transactions(
+#             direction = data['direction'],
+#             truck = data['truck'],
+#             containers = data['containers'],
+#             produce = data['produce'],
+#             datetime = date_time.now(),
+#             session_id = auto_increment_number,
+#         )
+#         try:
+#             db.session.add(transaction_obj)
+#             db.session.commit()
+#         except Exception as err:
+#              logging.error(f"Error happened! {err}")
+#         response_data = {
+#             "id": "TEST",
+#             "truck": "T-1234",
+#             "bruto": 5000
+#         }
     
-        return response_data
+#         return response_data
 
+# GET 
 
+@app.route('/session/<int:id>', methods=['GET'])
+def get_session(id):
+        transaction = db.one_or_404(Transactions.query.filter_by(session_id=id))
+        try:
+            res = {
+                "id" : transaction.session_id,
+                "truck": transaction.truck,
+                "bruto": transaction.bruto,
+                "truckTara": transaction.truckTara,
+                "neto": transaction.neto,
+            }
+            return res
+        except:
+            return "404 no session id"
+            
+
+    
+    
 @app.route('/health')
 def health_check():
     try:
