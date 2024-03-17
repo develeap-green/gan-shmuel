@@ -1,3 +1,4 @@
+from operator import contains
 from venv import logger
 from flask import jsonify, request
 from app import app, db
@@ -49,10 +50,14 @@ def retrieve_weight_list():
                                                          Transactions.datetime <= to,
                                                          Transactions.direction.in_(_filter.split(','))).all()
 
-    res = [transaction.to_dict() for transaction in transactions]
-
-    if not res:
-        return '', HTTPStatus.NOT_FOUND
+    res = [{
+        "id": t.id,
+        "direction": t.direction,
+        "bruto": t.bruto,
+        "neto": t.neto if t.neto else None,
+        "produce": t.produce,
+        "containers": [container for container in t.containers.split(',')] or [],
+    } for t in transactions]
 
     return jsonify(res), HTTPStatus.OK
 
