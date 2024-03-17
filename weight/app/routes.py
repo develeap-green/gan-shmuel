@@ -122,10 +122,8 @@ def get_item(id):
             monnth = str(datetime.today().month)
             if len(monnth) == 1:
                 monnth = "0" + monnth
-            logger.info(f"month {monnth}")
             _from = str(datetime.today().year) + \
                 monnth + "01" + hms
-            logger.info(f"month {monnth}")
         else:
             _from = request.args.get('from')
         to = request.args.get('to', now.strftime("%Y%m%d%H%M%S"))
@@ -148,9 +146,6 @@ def get_item(id):
                 Transactions.containers.contains(id), Transactions.datetime >= _from, Transactions.datetime <= to).all()
             container_tara = find_weight_by_id(
                 "data/containers1.csv", id) or "na"
-            logger.info(f"container_tara {container_tara}")
-            logger.info(f"container_tara {container_tara}")
-
             for t in transaction:
                 session_list.append(str(t.session_id))
             if transaction:
