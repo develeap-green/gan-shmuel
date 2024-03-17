@@ -1,5 +1,3 @@
-from operator import contains
-from venv import logger
 from flask import jsonify, request
 from app import app, db
 from sqlalchemy.sql import text
@@ -8,7 +6,6 @@ from http import HTTPStatus
 from datetime import datetime
 from app.models import ContainersRegistered, Transactions
 from datetime import datetime
-import csv
 
 
 @app.route('/session/<int:id>', methods=['GET'])
@@ -42,7 +39,7 @@ def retrieve_weight_list():
         to = datetime.strptime(to, "%Y%m%d%H%M%S")
 
     except ValueError as err:
-        logger.error(f"Error: bad values passed into {request.args}: {err}")
+        logging.error(f"Error: bad values passed into {request.args}: {err}")
         return "", HTTPStatus.UNPROCESSABLE_ENTITY
 
     transactions = db.session.query(Transactions).filter(Transactions.datetime >= _from,
@@ -94,68 +91,56 @@ def health_check():
 # }
 
 
-def find_weight_by_id(csv_file, search_id):
-    try:
-        with open(csv_file, 'r') as csv_file:
-            reader = csv.DictReader(csv_file)
-            for row in reader:
-                if row['id'] == search_id:
-                    return row['kg']
-    except:
-        return "na"
-
-
 @app.route('/item/<id>')
 def get_item(id):
-    now = datetime.now()
-    _from = ''
-    to = ""
-    monnth = ""
-    session_list = []
+    # parse query params
     try:
-        if not request.args.get('to'):
-            to = datetime.now()
-        else:
-            to = request.args.get('to')
-        if not request.args.get('from'):
-            hms = "000000"
-            monnth = str(datetime.today().month)
-            if len(monnth) == 1:
-                monnth = "0" + monnth
-            _from = str(datetime.today().year) + \
-                monnth + "01" + hms
-        else:
-            _from = request.args.get('from')
-        to = request.args.get('to', now.strftime("%Y%m%d%H%M%S"))
+        now = datetime.now()
+        to = request.args.get('to', now.strftime('%Y%m%d%H%M%S'))
+        _from = request.args.get('from', now.replace(
+            day=1, hour=0, minute=0, second=0).strftime('%Y%m%d%H%M%S'))
+
         _from = datetime.strptime(_from, "%Y%m%d%H%M%S")
         to = datetime.strptime(to, "%Y%m%d%H%M%S")
-        if id[0] == "T":
-            transaction = db.session.query(Transactions).filter(
-                Transactions.truck == id, Transactions.datetime >= _from, Transactions.datetime <= to).all()
-            for t in transaction:
-                session_list.append(str(t.session_id))
-            if transaction:
-                res = [{
-                    "id": id,
-                    "tara": t.truckTara,
-                    "sessions": session_list
-                } for t in transaction]
-                return jsonify(res), HTTPStatus.OK
-        elif id[0] == "C":
-            transaction = db.session.query(Transactions).filter(
-                Transactions.containers.contains(id), Transactions.datetime >= _from, Transactions.datetime <= to).all()
-            container_tara = find_weight_by_id(
-                "data/containers1.csv", id) or "na"
-            for t in transaction:
-                session_list.append(str(t.session_id))
-            if transaction:
-                res = [{
-                    "id": id,
-                    "tara": container_tara,
-                    "session_id": session_list
-                }]
-                return jsonify(res), HTTPStatus.OK
-    except:
-        logger.error(f"Error: bad values passed into {request.args}")
+    except ValueError as err:
+        logging.error(f"Error: bad values passed into {request.args}: {err}")
         return "", HTTPStatus.UNPROCESSABLE_ENTITY
-    return "item not found"
+
+    try:
+        # handle trucks
+        if id[0] == "T":
+            transactions = db.session.query(Transactions).filter(
+                Transactions.truck == id, Transactions.datetime >= _from, Transactions.datetime <= to).all()
+            if transactions:
+                session_list = [str(t.session_id) for t in transactions]
+                res = {
+                    "id": id,
+                    "tara": transactions[0].truckTara,
+                    "sessions": session_list
+                }
+        # handle containers
+        elif id[0] == "C":
+            transactions = db.session.query(Transactions).filter(
+                Transactions.containers.contains(id), Transactions.datetime >= _from, Transactions.datetime <= to).all()
+
+            if transactions:
+                container_tara = db.one_or_404(db.session.query(ContainersRegistered).filter(
+                    ContainersRegistered.container_id == id))
+
+                session_list = [str(t.session_id) for t in transactions]
+                res = {
+                    "id": id,
+                    "tara": container_tara.weight,
+                    "session_id": session_list
+                }
+
+        else:
+            raise Exception
+
+    except Exception as err:
+        logging.error("Item id {id} is either invalid or not in the database")
+        return {"error": "invalid item id"}, HTTPStatus.BAD_REQUEST
+    if not res:
+        return "", HTTPStatus.NOT_FOUND
+
+    return jsonify(res), HTTPStatus.OK
