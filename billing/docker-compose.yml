@@ -9,6 +9,9 @@ services:
       - MYSQL_PASSWORD=pass
     depends_on:
       - db
+    volumes:
+      - ./logs:/app/logs
+
   db:
     image: mysql:8.3
     environment:
@@ -25,3 +28,4 @@ services:
 
 volumes:
   db-data:
+  logs:
