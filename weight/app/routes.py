@@ -8,6 +8,7 @@ from http import HTTPStatus
 from datetime import datetime
 from app.models import ContainersRegistered, Transactions
 from datetime import datetime
+import csv
 
 
 @app.route('/session/<int:id>', methods=['GET'])
@@ -81,3 +82,85 @@ def health_check():
     except Exception as err:
         logging.error(f"Database connection error: {err}")
         return '', HTTPStatus.SERVICE_UNAVAILABLE
+
+# GET /item/<id>?from=t1&to=t2
+# - id is for an item (truck or container). 404 will be returned if non-existent
+# - t1,t2 - date-time stamps, formatted as yyyymmddhhmmss. server time is assumed.
+# default t1 is "1st of month at 000000". default t2 is "now".
+# Returns a json:
+# { "id": <str>,
+#   "tara": <int> OR "na", // for a truck this is the "last known tara"
+#   "sessions": [ <id1>,...]
+# }
+
+
+def find_weight_by_id(csv_file, search_id):
+    try:
+        with open(csv_file, 'r') as csv_file:
+            reader = csv.DictReader(csv_file)
+            for row in reader:
+                if row['id'] == search_id:
+                    return row['kg']
+    except:
+        return "na"
+
+
+@app.route('/item/<id>')
+def get_item(id):
+    now = datetime.now()
+    _from = ''
+    to = ""
+    monnth = ""
+    session_list = []
+    try:
+        if not request.args.get('to'):
+            to = datetime.now()
+        else:
+            to = request.args.get('to')
+        if not request.args.get('from'):
+            hms = "000000"
+            monnth = str(datetime.today().month)
+            if len(monnth) == 1:
+                monnth = "0" + monnth
+            logger.info(f"month {monnth}")
+            _from = str(datetime.today().year) + \
+                monnth + "01" + hms
+            logger.info(f"month {monnth}")
+        else:
+            _from = request.args.get('from')
+        to = request.args.get('to', now.strftime("%Y%m%d%H%M%S"))
+        _from = datetime.strptime(_from, "%Y%m%d%H%M%S")
+        to = datetime.strptime(to, "%Y%m%d%H%M%S")
+        if id[0] == "T":
+            transaction = db.session.query(Transactions).filter(
+                Transactions.truck == id, Transactions.datetime >= _from, Transactions.datetime <= to).all()
+            for t in transaction:
+                session_list.append(str(t.session_id))
+            if transaction:
+                res = [{
+                    "id": id,
+                    "tara": t.truckTara,
+                    "sessions": session_list
+                } for t in transaction]
+                return jsonify(res), HTTPStatus.OK
+        elif id[0] == "C":
+            transaction = db.session.query(Transactions).filter(
+                Transactions.containers.contains(id), Transactions.datetime >= _from, Transactions.datetime <= to).all()
+            container_tara = find_weight_by_id(
+                "data/containers1.csv", id) or "na"
+            logger.info(f"container_tara {container_tara}")
+            logger.info(f"container_tara {container_tara}")
+
+            for t in transaction:
+                session_list.append(str(t.session_id))
+            if transaction:
+                res = [{
+                    "id": id,
+                    "tara": container_tara,
+                    "session_id": session_list
+                }]
+                return jsonify(res), HTTPStatus.OK
+    except:
+        logger.error(f"Error: bad values passed into {request.args}")
+        return "", HTTPStatus.UNPROCESSABLE_ENTITY
+    return "item not found"
