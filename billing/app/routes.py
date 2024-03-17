@@ -63,7 +63,26 @@ def updateProvider(providerId):
         db.session.rollback()
         abort(500, f'An error occurred: {str(e)}')
 
+# Route to create a provider
+@app.route('/truck/', methods=["POST"])
+def createTruck():
+    # Store the Truck POST request
+    data = request.json.get('provider_id', None)
 
+   # If 'newTruck' is not provided or is empty, return a 400 Bad Request error
+    if not data or 'provider_id' not in data:
+        abort(400, 'The truck field is required.')
+
+    # Check if Truck name exists, return 409 status code if it does.
+    provider_id = data['provider_id']
+    existingTruck = Trucks.query.filter_by(provider_id=provider_id).first()
+    if existingTruck:
+        return jsonify({"Error": f"Truck with provider ID {provider_id} already exists."}), 409
+    
+    newTruck = Trucks(provider_id=provider_id)
+    db.session.add(newTruck)
+    db.session.commit()
+    return jsonify({"Success": f"Truck with provider ID {provider_id} created successfully."}), 201
 # Health check route using function from health.py
 @app.route("/health", methods=["GET"])
 def health_check():
