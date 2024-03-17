@@ -74,13 +74,23 @@ def createTruck():
     if not data or 'provider_id' not in data or 'id' not in data:  
         abort(400, 'The truck field is required.')
 
-    providerId = data.get('provider')
-    truckId = data.get('id')
+    if data:
+        providerId = data.get('provider_id')
+        truckId = data.get('id')
+    else:
+    # Handle the case where data is None
+        abort(400, 'No JSON data provided.')
+
+
 
     # Check if Truck name exists, return 409 status code if it does.
     existingTruck = Trucks.query.filter_by(id=truckId).first()
     if existingTruck:
         return jsonify({"Error": f"Truck with license plate {truckId} already exists."}), 409
+
+    provider = Provider.query.get('provider_id')
+    if provider is None:
+        abort(404, f'Provider with ID {providerId} does not exist.')
 
     newTruck = Trucks(id=truckId, provider_id=providerId)
     db.session.add(newTruck)
