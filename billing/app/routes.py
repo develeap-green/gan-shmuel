@@ -40,7 +40,7 @@ def createProvider():
 @app.route('/provider/<int:providerId>', methods=['PUT'])
 def updateProvider(providerId):
 
-    # Attempt to retrieve the 'name' value from the JSON payload in the PUT request
+    # Attempt to retrieve the 'name' value from the JSON in the PUT request
     updateName = request.json.get('name', None)
     if not updateName:
         # If 'name' is not provided or is empty, return a 400 Bad Request error
@@ -66,7 +66,7 @@ def updateProvider(providerId):
 
 
 # Route to create a provider
-@app.route('/truck/', methods=["POST"])
+@app.route('/truck', methods=["POST"])
 def createTruck():
     # Store the Truck POST request
     data = request.get_json(silent=True)
@@ -81,14 +81,12 @@ def createTruck():
     # Handle the case where data is None
         abort(400, 'No JSON data provided.')
 
-
-
     # Check if Truck name exists, return 409 status code if it does.
     existingTruck = Trucks.query.filter_by(id=truckId).first()
     if existingTruck:
         return jsonify({"Error": f"Truck with license plate {truckId} already exists."}), 409
 
-    provider = Provider.query.get('provider_id')
+    provider = Provider.query.get(providerId)
     if provider is None:
         abort(404, f'Provider with ID {providerId} does not exist.')
 
@@ -97,6 +95,39 @@ def createTruck():
     db.session.commit()
 
     return jsonify({"Success": f"Truck with license plate {truckId} registered successfully."}), 201
+
+# Route to update a truck
+@app.route('/truck/<string:truck_id>/', methods=['PUT'])
+def updateTruckProvider(truck_id):
+    # Attempt to retrieve the 'provider_id' value from the JSON in the PUT request
+    updateProviderId = request.json.get('provider_id', None)
+    if updateProviderId is None:
+        # If 'provider_id' is not provided or is empty, return a 400 Bad Request error
+        abort(400, 'The provider_id field is required.')
+
+    # Find the truck by ID
+    truck = Trucks.query.get(truck_id)
+    if truck is None:
+        # If the truck does not exist, return a 404 Not Found error
+        abort(404, f'Truck with id {truck_id} does not exist.')
+
+    # Check if the new provider exists
+    provider = Provider.query.get(updateProviderId)
+    if provider is None:
+        # If the new provider does not exist, return a 404 Not Found error
+        abort(404, f'Provider with id {updateProviderId} does not exist.')
+
+    try:
+        # Update the truck's provider_id with the new provider_id provided in the PUT request
+        truck.provider_id = updateProviderId
+        db.session.commit()  # Commit the transaction to save the changes in the database
+        # Return a success message with a 200 OK status code
+        return jsonify({'message': f'Truck {truck_id} provider updated successfully.'}), 200
+    except Exception as e:
+        db.session.rollback()
+        # If an error occurs, return a 500 Internal Server Error
+        abort(500, f'An error occurred: {str(e)}')
+
 
 
 
