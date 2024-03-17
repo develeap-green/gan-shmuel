@@ -70,25 +70,21 @@ def createTruck():
     data = request.json.get('provider_id', None)
 
    # If 'newTruck' is not provided or is empty, return a 400 Bad Request error
-    if not data or 'provider_id' not in data:
-        abort(400, 'The truck field is required.')
+    if not data or 'provider_id' not in data or 'id' not in data:        abort(400, 'The truck field is required.')
 
     providerId = data.get('provider')
-    truck_id = data.get('id')
-
-    if not providerId or not truck_id:
-        abort(400, 'The provider and id fields are required.')
+    truckId = data.get('id')
 
     # Check if Truck name exists, return 409 status code if it does.
-    existingTruck = Trucks.query.filter_by(id=truck_id).first()
+    existingTruck = Trucks.query.filter_by(id=truckId).first()
     if existingTruck:
-        return jsonify({"Error": f"Truck with license plate {truck_id} already exists."}), 409
+        return jsonify({"Error": f"Truck with license plate {truckId} already exists."}), 409
 
-    newTruck = Trucks(id=truck_id, provider_id=providerId)
+    newTruck = Trucks(id=truckId, provider_id=providerId)
     db.session.add(newTruck)
     db.session.commit()
 
-    return jsonify({"Success": f"Truck with license plate {truck_id} registered successfully."}), 201
+    return jsonify({"Success": f"Truck with license plate {truckId} registered successfully."}), 201
 # Health check route using function from health.py
 @app.route("/health", methods=["GET"])
 def health_check():
