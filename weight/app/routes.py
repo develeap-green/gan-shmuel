@@ -6,28 +6,26 @@ from sqlalchemy.sql import text
 import logging
 from http import HTTPStatus
 from datetime import datetime
-from app.models import Transactions
+from app.models import ContainersRegistered, Transactions
 from datetime import datetime
 
 
-
-      
-
 @app.route('/session/<int:id>', methods=['GET'])
 def get_session(id):
-        transaction = db.one_or_404(db.session.query(Transactions).filter_by(session_id=id))
-        try:
-            res = {
-                "id" : transaction.session_id,
-                "truck": transaction.truck,
-                "bruto": transaction.bruto,
-                "truckTara": transaction.truckTara,
-                "neto": transaction.neto,
-            }
-            return res
-        except:
-            return "404 no session id"
-            
+    transaction = db.one_or_404(db.session.query(
+        Transactions).filter_by(session_id=id))
+    try:
+        res = {
+            "id": transaction.session_id,
+            "truck": transaction.truck,
+            "bruto": transaction.bruto,
+            "truckTara": transaction.truckTara,
+            "neto": transaction.neto,
+        }
+        return res
+    except:
+        return "404 no session id"
+
 
 @app.route('/weight')
 def retrieve_weight_list():
@@ -61,8 +59,19 @@ def retrieve_weight_list():
 
     return jsonify(res), HTTPStatus.OK
 
-    
-    
+
+@app.route('/unknown')
+def get_uknown_containers():
+    containers = db.session.query(ContainersRegistered).filter(
+        ContainersRegistered.weight == None).all()
+    res = [c.container_id for c in containers]
+
+    if not res:
+        return '', HTTPStatus.NOT_FOUND
+
+    return jsonify(res), HTTPStatus.OK
+
+
 @app.route('/health')
 def health_check():
     try:
