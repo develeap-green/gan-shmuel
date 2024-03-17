@@ -63,14 +63,16 @@ def updateProvider(providerId):
         db.session.rollback()
         abort(500, f'An error occurred: {str(e)}')
 
+
+
 # Route to create a provider
 @app.route('/truck/', methods=["POST"])
 def createTruck():
     # Store the Truck POST request
-    data = request.json.get('provider_id', None)
-
+    data = request.get_json(silent=True)
    # If 'newTruck' is not provided or is empty, return a 400 Bad Request error
-    if not data or 'provider_id' not in data or 'id' not in data:        abort(400, 'The truck field is required.')
+    if not data or 'provider_id' not in data or 'id' not in data:  
+        abort(400, 'The truck field is required.')
 
     providerId = data.get('provider')
     truckId = data.get('id')
@@ -85,6 +87,9 @@ def createTruck():
     db.session.commit()
 
     return jsonify({"Success": f"Truck with license plate {truckId} registered successfully."}), 201
+
+
+
 # Health check route using function from health.py
 @app.route("/health", methods=["GET"])
 def health_check():
