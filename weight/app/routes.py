@@ -7,63 +7,14 @@ from http import HTTPStatus
 from datetime import datetime
 from app.models import Transactions
 from datetime import datetime
-import random
 
 
-@app.route('/weight', methods=['POST'])
-def handle_post():
-     # TODO ERROR HANDLING
-    # try:
-        data = request.get_json()
-        curr_direction = data['direction']
-        new_session_id = random.random() * random.random()
-        # TODO take later form csv
-        sum_tara_containaris = 500
-        # get last truck session
-        results = Transactions.query.filter_by(truck = data['truck']).order_by(Transactions.datetime.desc())
-        if results.count() > 1:
-            last_session_id = results[0].session_id
-            last_direction = results[0].direction   
-        response = {
-            "truck": data["truck"],
-        }
-        # if in == in out == out
-        if last_direction == curr_direction:
-            if data["force"] == "false":
-                return f"force is false, last_direction {last_direction} , curr_direction {curr_direction}"
-            # force update a record
-            else:
-                if data["direction"] in ["in", "none"]:
-                    new_session_id = random.random()
-                    bruto = data["weight"]
-                    response["bruto"] = bruto
 
-                # direction is out
-                else:
-                    truck_tara = data["weight"]
-                    neto = bruto - truck_tara - sum_tara_containaris
-                    new_session_id = last_session_id
-                    response["truck_tara"] = truck_tara
-                    response["neto"] = neto
-        #  last session direction != req direction
-        trasn_obj = Transactions(
-                    direction = data['direction'],
-                    truck = data['truck'],
-                    containers = data['containers'],
-                    produce = data['produce'],
-                    datetime = datetime.now(),
-                    session_id = new_session_id,
-                    )
-                
-        db.session.add(trasn_obj)
-        db.session.commit()
-        return response
-    # except:
-    #     return "error"
+      
 
 @app.route('/session/<int:id>', methods=['GET'])
 def get_session(id):
-        transaction = db.one_or_404(Transactions.query.filter_by(session_id=id))
+        transaction = db.one_or_404(db.session.query(Transactions).filter_by(session_id=id))
         try:
             res = {
                 "id" : transaction.session_id,
