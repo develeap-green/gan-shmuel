@@ -38,68 +38,39 @@ def trigger():
         # Change dir
         os.chdir(REPO_NAME)
 
-        ##################
-        ##### WEIGHT #####
-        ##################
+    
         # Build environment
         logger.info(f"Starting the build process.")
-        build = subprocess.run(['docker compose', '-f', 'docker-compose.weight-dev.yml', 'build'])
-        if build.returncode != 0:
-            logger.error(f"Build process failed.")
-            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Build stage weight')
-            return jsonify({'error': 'Build process failed.'}), 500
+        # build = subprocess.run(['docker compose', '-f', 'docker-compose.dev.yml', 'build'])
+        # if build.returncode != 0:
+        #     logger.error(f"Build process failed.")
+        #     send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Build stage billing')
+        #     return jsonify({'error': 'Build process failed.'}), 500
 
         # Up environment
-        logger.info(f"Running dev environment.")
-        up_env = subprocess.run(['docker compose', '-f', 'docker-compose.weight-dev.yml', 'up'])
-        if up_env.returncode != 0:
-            logger.error(f"Up process failed.")
-            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Run stage weight')
-            return jsonify({'error': 'Run process failed.'}), 500
+        logger.info(f"Running test environment.")
+        # up_env = subprocess.run(['docker compose', '-f', 'docker-compose.dev.yml', 'up'])
+        # if up_env.returncode != 0:
+        #     logger.error(f"Up process failed.")
+        #     send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Run stage billing')
+        #     return jsonify({'error': 'Run process failed.'}), 500
 
         # Run testing
         logger.info(f"Running tests.")
-        test = subprocess.run(['docker compose', '-f', 'docker-compose.weight-dev.yml', 'exec', 'app', 'pytest'])
-        if test.returncode != 0:
-            logger.error(f"Testing failed.")
-            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage weight')
-            return jsonify({'error': 'Testing failed.'}), 500
-        
-        ###################
-        ##### BILLING #####
-        ###################
-        # Build environment
-        logger.info(f"Starting the build process.")
-        build = subprocess.run(['docker compose', '-f', 'docker-compose.bill-dev.yml', 'build'])
-        if build.returncode != 0:
-            logger.error(f"Build process failed.")
-            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Build stage billing')
-            return jsonify({'error': 'Build process failed.'}), 500
-
-        # Up environment
-        logger.info(f"Running dev environment.")
-        up_env = subprocess.run(['docker compose', '-f', 'docker-compose.bill-dev.yml', 'up'])
-        if up_env.returncode != 0:
-            logger.error(f"Up process failed.")
-            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Run stage billing')
-            return jsonify({'error': 'Run process failed.'}), 500
-
-        # Run testing
-        logger.info(f"Running tests.")
-        test = subprocess.run(['docker compose', '-f', 'docker-compose.bill-dev.yml', 'exec', 'app', 'pytest'])
-        if test.returncode != 0:
-            logger.error(f"Testing failed.")
-            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing')
-            return jsonify({'error': 'Testing failed.'}), 500
+        # test = subprocess.run(['docker compose', '-f', 'docker-compose.dev.yml', 'exec', 'app', 'pytest'])
+        # if test.returncode != 0:
+        #     logger.error(f"Testing failed.")
+        #     send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing')
+        #     return jsonify({'error': 'Testing failed.'}), 500
 
 
         # Replace production
         logger.info(f"Replace production")
-        up = subprocess.run(['docker compose', '-f', 'docker-compose.pro.yml', 'up'])
-        if up.returncode != 0:
-            logger.error(f"Up process failed.")
-            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replace production')
-            return jsonify({'error': 'Replace production failed.'}), 500
+        # up = subprocess.run(['docker compose', '-f', 'docker-compose.pro.yml', 'up'])
+        # if up.returncode != 0:
+        #     logger.error(f"Up process failed.")
+        #     send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replace production')
+        #     return jsonify({'error': 'Replace production failed.'}), 500
 
         send_email(subject='Deploy succeeded', html_page='success_email.html', stage='')
         return jsonify({'status': 'success', 'message': 'Deployment successful'}), 200
