@@ -1,17 +1,9 @@
 from flask import request, jsonify, render_template
-from app import app, logger
+from app import app, logger, REPO_URL, REPO_NAME
+from app.utils.utils import delete_repo, send_email
 import subprocess
-import shutil
 import json
 import os
-
-REPO_URL = os.environ.get('REPO_URL')
-REPO_NAME = REPO_URL.split('/')[-1].split('.git')[0]
-
-def del_repo():
-    if os.path.exists(os.path.join(os.getcwd(), REPO_NAME)):
-        shutil.rmtree(REPO_NAME)
-
 
 @app.route('/', methods=['GET'])
 def index():
@@ -20,6 +12,7 @@ def index():
 
 @app.route('/health', methods=['GET'])
 def health():
+    #### ADD HEALTH CHECK TO BILLING AND WEIGHT SERVICES
     return jsonify({'status': 'success', 'message': 'Ok'}), 200
 
 
@@ -30,68 +23,63 @@ def trigger():
         logger.info(data)
 
         # Clone the repository
-        logger.info(f"Cloning git repository.")
-        del_repo()
-        clone = subprocess.run(['git', 'clone', REPO_URL])
+        if not os.path.exists(REPO_NAME):
+            logger.info("Cloning git repository.")
+            repo_update = subprocess.run(['git', 'clone', REPO_URL], check=True)
+        else:
+            logger.info("Pulling git repository.")
+            repo_update = subprocess.run(['git', 'pull'], check=True)
 
-        if clone.returncode != 0:
+        if repo_update.returncode != 0:
             logger.error(f"Clone process failed.")
-            del_repo()
+            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Updat repo stage')
             return jsonify({'error': 'Clone process failed.'}), 500
 
         # Change dir
-        os.chdir(REPO_URL.split('/')[-1].split('.git')[0])
+        os.chdir(REPO_NAME)
 
-        # Run tests
-        logger.info(f"Running tests.")
-        
-
-        # Build
+        # Build environment
         logger.info(f"Starting the build process.")
+        build = subprocess.run(['docker-compose', '-f', 'docker-compose.dev.yml', 'build'])
+        if build.returncode != 0:
+            logger.error(f"Build process failed.")
+            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Build stage')
+            return jsonify({'error': 'Build process failed.'}), 500
 
+        # Up environment
+        logger.info(f"Running dev environment.")
+        up = subprocess.run(['docker-compose', '-f', 'docker-compose.dev.yml', 'up'])
+        if up.returncode != 0:
+            logger.error(f"Up process failed.")
+            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Run stage')
+            return jsonify({'error': 'Run process failed.'}), 500
 
-        # Running
-        logger.info(f"Starting the container.")
+        # Run testing
+        logger.info(f"Running tests.")
+        test = subprocess.run(['docker-compose', '-f', 'docker-compose.dev.yml', 'exec', 'app', 'pytest'])
+        if test.returncode != 0:
+            logger.error(f"Testing failed.")
+            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage')
+            return jsonify({'error': 'Testing failed.'}), 500
 
+        # Replace production
+        logger.info(f"Replace production")
+        up = subprocess.run(['docker-compose', '-f', 'docker-compose.pro.yml', 'up'])
+        if up.returncode != 0:
+            logger.error(f"Up process failed.")
+            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replace production')
+            return jsonify({'error': 'Replace production failed.'}), 500
 
-        # del_repo()
+        send_email(subject='Deploy succeeded', html_page='success_email.html', stage='')
         return jsonify({'status': 'success', 'message': 'Deployment successful'}), 200
 
 
 
-@app.route('/test', methods=['GET'])
-def test():
-
-    # Clone the repository
-    logger.info(f"Cloning git repository.")
-    del_repo()
-    clone = subprocess.run(['git', 'clone', REPO_URL])
-
-    if clone.returncode != 0:
-        logger.error(f"Clone process failed.")
-        del_repo()
-        return jsonify({'error': 'Clone process failed.'}), 500
-
-    # Change dir
-    os.chdir(REPO_NAME)
-
-    # Run tests
-    logger.info(f"Running tests.")
-    
-
-    # Build
-    logger.info(f"Starting the build process.")
 
 
-    # Running
-    logger.info(f"Starting the container.")
 
 
-    # del_repo()
+@app.route('/test-email', methods=['GET'])
+def email():
+    send_email(subject='Deploy succeeded', html_page='success_email.html', stage='')
     return jsonify({'status': 'success', 'message': 'Deployment successful'}), 200
-
-
-
-
-
-
