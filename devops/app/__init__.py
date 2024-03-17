@@ -7,7 +7,6 @@ import logging
 load_dotenv()
 
 FLASK_SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
-BASE_URL = os.environ.get('BASE_URL')
 REPO_URL = os.environ.get('REPO_URL')
 REPO_NAME = REPO_URL.split('/')[-1].split('.git')[0]
 

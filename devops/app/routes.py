@@ -48,8 +48,8 @@ def trigger():
 
         # Up environment
         logger.info(f"Running dev environment.")
-        up = subprocess.run(['docker-compose', '-f', 'docker-compose.dev.yml', 'up'])
-        if up.returncode != 0:
+        up_env = subprocess.run(['docker-compose', '-f', 'docker-compose.dev.yml', 'up'])
+        if up_env.returncode != 0:
             logger.error(f"Up process failed.")
             send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Run stage')
             return jsonify({'error': 'Run process failed.'}), 500
