@@ -1,3 +1,4 @@
+import json
 from flask import abort, request, jsonify
 from app import app, db
 from app.utils import check_db_health, get_table_contents
@@ -129,7 +130,38 @@ def updateTruckProvider(truck_id):
         abort(500, f'An error occurred: {str(e)}')
 
 
+# Mock trucks data file
+with open('../mock_trucks_with_sessions.json', 'r') as file:
+    truckData = json.load(file)
+    
+# Route to get truck data by id
+# Display truck id, last known tara in kg and sessions
+@app.route('/truck/<id>', methods=['GET'])
+def getTruck(id):
 
+    # Remove whitespace and newlines from the truck_id
+    id = id.strip()
+
+    truck = next((item for item in truckData if item['id'] == id), None)
+    
+    if truck:
+        return jsonify({
+            "id": truck['id'],
+            "tara": truck['tara'],
+            "sessions": truck['sessions']
+        })
+    
+    else:
+        return jsonify({"error": f"Truck with id {id} not found."}), 404
+# GET /truck/<id>?from=t1&to=t2
+# - id is the truck license. 404 will be returned if non-existent
+# - t1,t2 - date-time stamps, formatted as yyyymmddhhmmss. server time is assumed.
+# default t1 is "1st of month at 000000". default t2 is "now".
+# Returns a json:
+# { "id": <str>,
+#   "tara": <int>, // last known tara in kg
+#   "sessions": [ <id1>,...]
+# }
 
 # Health check route using function from health.py
 @app.route("/health", methods=["GET"])
