@@ -24,11 +24,10 @@
 **/cover/
 **/__pycache__/
 
-
 # Flask stuff:
 **/instance/
 **/.webassets-cache
-
+**/__pycache__
 
 # Environments
 **/.env
