@@ -185,9 +185,9 @@ def updateTruckProvider(truck_id):
         abort(500, error_msg)
 
 
-# # Mock trucks data file
-# with open('../mock_trucks_with_sessions.json', 'r') as file:
-#     truckData = json.load(file)
+# Mock trucks data file
+with open('in/mock_trucks_with_sessions.json', 'r') as file:
+    truckData = json.load(file)
 
 
 # Route to get truck data by id

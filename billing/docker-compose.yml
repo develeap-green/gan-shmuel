@@ -11,6 +11,7 @@ services:
       - db
     volumes:
       - ./logs:/app/logs
+      - ./in:/app/in
 
   db:
     image: mysql:8.3
