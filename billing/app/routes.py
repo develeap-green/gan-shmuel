@@ -4,6 +4,7 @@ from app import app, db
 from app.utils import check_db_health, get_table_contents
 from app.models import Provider, Rates, Trucks
 import logging
+from app.rates import updateRatesFromFile
 
 # For /tables route, testing only
 from sqlalchemy import MetaData
@@ -251,6 +252,15 @@ def show_tables_and_contents():
             table_name = table.name
             tables_contents[table_name] = get_table_contents(table)
         return jsonify(tables_contents)
+    
+
+@app.route("/rates", methods=["POST", "GET"])
+def updateRates():
+    if request.method == "POST":
+        return updateRatesFromFile()
+    elif request.method == "GET":
+        return "not implemented yet"
+
 
 
 if __name__ == "__main__":
