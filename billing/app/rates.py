@@ -1,46 +1,30 @@
 import os
-import csv
-from app import app, db
+import pandas as pd
+from app import db
 from app.models import Rates
-import sqlalchemy
-from sqlalchemy import and_
-from flask import jsonify
-
-
-
-
 
 def updateRatesFromFile():
-    # Iterate over files in the 'in' directory
-    #this works when your pwd is billing - test this!!!!!!!!!!!!!!!!!!!!!!!!!
-    for filename in os.listdir('in'):
-        file_path = os.path.join('in', filename)
-        dataList = []
-        with open(file_path, 'r') as file:
-            reader = csv.DictReader(file)
-            # For each row in the file, update the rare
-            for row in reader:
-                dataList.append(row)
-            # Update the database Rates:
-            for row in dataList:
-                option = "" # Flag
-                # Query the database to retrieve the product's objects by Provider id (scope)
-                # Retrive all the products by product id
-                if row['Scope'] == 'All':
-                    option = "All providers"
-                    providerProduct = Rates.query.filter_by(product_id=row['Product']).all()
-                # Retrive all the producte by product id and provider id (scope)
-                elif row['Scope'] != 'All' and row['Scope'] != None:
-                    option = "specific provider"
-                    providerProduct = Rates.query.filter(and_(Rates.scope == row['Scope'], Rates.product_id == row['Product'])).all()
-                # Update the product rate
-                if option == "specific provider":
-                    for product in providerProduct:
-                        providerProduct.rate = row['Rate']
-                elif option == "All providers":
-                    for product in providerProduct:
-                        product.rate = row['Rate']
-            # Commit changes to the database
-#            providerProduct.commit()
-            db.session.commit()
-    return "updated"
+    in_directory = os.path.abspath('in')
+    file_path = os.path.join(in_directory, 'rates.csv')
+    
+    # Check if the file exists
+    if os.path.exists(file_path):
+        # Read the Excel file into a DataFrame
+        df = pd.read_csv(file_path)
+
+
+        # Remove all existing rates from the database
+        db.session.query(Rates).delete()
+        
+        # Add the database all rates from the file
+        for _, row in df.iterrows():
+            # Add new rate
+            rate = Rates(product_id=row['product'], rate=row['rate'], scope=row['scope'])
+            db.session.add(rate)
+        
+        # Commit the changes to the database
+        db.session.commit()
+        return "Database updated successfully"
+
+    else:
+        return "File does not exist"
