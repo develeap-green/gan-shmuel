@@ -9,7 +9,7 @@ services:
     restart: always
     networks:
       - weight-network
-      - nginx-network
+      - nginx-pro-network
     depends_on:
       mysql-weight:
         condition: service_healthy
@@ -23,7 +23,7 @@ services:
       - weight-network
     volumes:
       - ./db:/docker-entrypoint-initdb.d
-      - weight_datbase:/var/lib/mysql
+      - weight_database:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 30s 
@@ -38,7 +38,7 @@ services:
     restart: always
     networks:
       - billing-network
-      - nginx-network
+      - nginx-pro-network
     depends_on:
       mysql-billing:
         condition: service_healthy
@@ -52,17 +52,28 @@ services:
       - billing-network
     volumes:
       - ./db-init:/docker-entrypoint-initdb.d
-      - billing_datbase:/var/lib/mysql
+      - billing_database:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 30s 
       retries: 20 
 
+  # Nginx
+  nginx:
+    image: nginx:1.24
+    ports:
+      - "8081:8081"
+      - "8082:8082"
+    volumes:
+      - ./nginx_pro.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - nginx-pro-network
+
 volumes:
-  weight_datbase:
-  billing_datbase:
+  weight_database:
+  billing_database:
 
 networks:
   billing-network:
   weight-network:
-  nginx-network:
+  nginx-pro-network:
