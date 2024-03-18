@@ -77,7 +77,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: ./devops/Dockerfile.api
     env_file:
       - ./devops/.env
     restart: always
