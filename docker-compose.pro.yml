@@ -6,7 +6,7 @@ services:
     image: weight-image:1
     hostname: weight
     env_file:
-      - ./weight.env
+      - ./devops/weight.env
     restart: always
     networks:
       - weight-network
@@ -18,7 +18,7 @@ services:
   mysql-weight:
     image: mysql:8.3
     env_file:
-      - ./weight.env
+      - ./devops/weight.env
     restart: always
     networks:
       - weight-network
@@ -36,7 +36,7 @@ services:
     image: billing-image:1
     hostname: billing
     env_file:
-      - ./billing.env
+      - ./devops/devops/billing.env
     restart: always
     networks:
       - billing-network
@@ -48,7 +48,7 @@ services:
   mysql-billing:
     image: mysql:8.3
     env_file:
-      - ./billing.env
+      - ./devops/billing.env
     restart: always
     networks:
       - billing-network
