@@ -6,4 +6,4 @@ cryptography
 requests
 pandas
 openpyxl
-
+Flask-Excel
