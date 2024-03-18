@@ -8,10 +8,11 @@ services:
     env_file:
       - ./devops/weight.env
     restart: always
-    ports:
-      - "8081:5000"
+    # ports:
+    #   - "8081:5000"
     networks:
       - weight-network
+      - nginx-network
     depends_on:
       mysql-weight:
         condition: service_healthy
@@ -39,10 +40,11 @@ services:
     env_file:
       - ./devops/billing.env
     restart: always
-    ports:
-      - "8082:5000"
+    # ports:
+    #   - "8082:5000"
     networks:
       - billing-network
+      - nginx-network
     depends_on:
       mysql-billing:
         condition: service_healthy
@@ -62,33 +64,6 @@ services:
       timeout: 30s 
       retries: 20 
 
-  # # Nginx
-  # nginx:
-  #   image: nginx:1.24
-  #   ports:
-  #     - "8080:8080"
-  #     - "8081:8081"
-  #     - "8082:8082"
-  #   volumes:
-  #     - /home/ubuntu/project/gan-shmuel/devops/nginx_pro.conf:/etc/nginx/nginx.conf:ro
-  #   networks:
-  #     - nginx-pro-network
-  #     - devops-network
-  #   depends_on:
-  #     - api
-  #     - billing
-  #     - weight
-
-# # Devops
-#   api:
-#     image: devops-image:1
-#     env_file:
-#       - ./devops/.env
-#     restart: always
-#     volumes:
-#       - /var/run/docker.sock:/var/run/docker.sock
-#     networks:
-#       - devops-network
 
 volumes:
   weight_database:
@@ -97,3 +72,4 @@ volumes:
 networks:
   billing-network:
   weight-network:
+  nginx-network:
