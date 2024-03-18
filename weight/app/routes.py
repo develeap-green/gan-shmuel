@@ -10,6 +10,7 @@ from app.utils import load_weights
 from datetime import datetime
 import random
 
+
 @app.route('/weight')
 def retrieve_weight_list():
     try:
@@ -65,6 +66,8 @@ def post_transaction():
     # truck gets in
     if data['direction'] == 'in':
         if last_row and last_row.direction == 'in' and not force:
+            logging.error(
+                "Cannot weight in another truck before another finished")
             return {"error": "Cannot weight in another truck before another finished"}, HTTPStatus.BAD_REQUEST
 
         # take data create transaction of in
@@ -121,9 +124,11 @@ def post_transaction():
     # truck gets out
     elif data['direction'] == 'out':
         if last_row and last_row.direction == 'out' and not force:
-            return {"error": "weight out is already in session "}, HTTPStatus.BAD_REQUEST
+            logging.error("weight out is already in session")
+            return {"error": "weight out is already in session"}, HTTPStatus.BAD_REQUEST
 
         elif last_row and last_row.direction != 'in' and not (last_row.direction == 'out' and force):
+            logging.error("weight out must be proceeded by a weight in")
             return {"error": "weight out must be proceeded by a weight in"}, HTTPStatus.BAD_REQUEST
 
         if not last_row:  # satisfy type checker
@@ -146,8 +151,6 @@ def post_transaction():
 
         if all(isinstance(w, int) for w in weights):
             tara_containers = sum(weights)
-            logging.info(
-                f"XXXXXXXXXX {truck_tara} {tara_containers} XXXXXXXXXX")
             neto = truck_tara - int(tara_containers)
         else:
             tara_containers = None
@@ -224,30 +227,35 @@ def get_item(id):
                 }
 
         else:
-            raise Exception
+            error = f"provided id: {id}, doesn't belong to neither trucks nor containers"
+            logging.error(error)
+            return {"error": error}, HTTPStatus.BAD_REQUEST
 
     except Exception as err:
         logging.error("Item id {id} is either invalid or not in the database")
         return {"error": "invalid item id"}, HTTPStatus.BAD_REQUEST
+
     if not res:
         return "", HTTPStatus.NOT_FOUND
 
     return jsonify(res), HTTPStatus.OK
 
 
-@app.route('/session/<int:id>', methods=['GET'])
+@app.route('/session/<int:id>')
 def get_session(id):
     transaction = db.one_or_404(db.session.query(
-        Transactions).filter_by(session_id=id))
-
+        Transactions).filter_by(session_id=id), description="session doesn't exist")
     res = {
         "id": transaction.session_id,
-        "truck": transaction.truck,
+        "truck": transaction.truck if transaction.truck else 'na',
         "bruto": transaction.bruto,
-        "truckTara": transaction.truckTara,
-        "neto": transaction.neto,
+        "neto": transaction.neto if transaction.neto else 'na',
     }
-    return res
+
+    if transaction.direction == 'out':
+        res = {**res, "truckTara": transaction.truckTara}
+
+    return res, HTTPStatus.OK
 
 
 @app.route('/batch-weight', methods=['POST'])
@@ -256,13 +264,15 @@ def upload_batch_weight():
     file_content = request.data
 
     if not file_content:
+        logging.error('No file data found in request body')
         return {'error': 'No file data found in request body'}, HTTPStatus.BAD_REQUEST
 
     try:
         return load_weights(file_content)
 
     except Exception as e:
-        return {'error': str(e)}
+        logging.error(str(e))
+        return {'error': str(e)}, HTTPStatus.BAD_REQUEST
 
 
 @app.route('/unknown')
