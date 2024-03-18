@@ -21,7 +21,7 @@ RUN chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
 WORKDIR /app
 
 # Copy and install dependencies
-COPY requirements.txt .
+COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 
 # Copy application directory
