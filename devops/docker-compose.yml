@@ -93,6 +93,6 @@ networks:
   weight-network:
   billing-network:
 
-  volumes:
-    weight_datbase:
-    billing_datbase:
+volumes:
+  weight_datbase:
+  billing_datbase:
