@@ -92,3 +92,7 @@ networks:
   nginx-network:
   weight-network:
   billing-network:
+
+  volumes:
+  weight_datbase:
+  billing_datbase:
