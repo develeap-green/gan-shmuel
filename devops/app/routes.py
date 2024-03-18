@@ -175,6 +175,7 @@ def trigger():
 
 
         # Stop nginx
+        logger.info(f"Stop nginx!")
         replace_production = subprocess.run(["docker", "stop", "devops-nginx-1"])
 
         replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])

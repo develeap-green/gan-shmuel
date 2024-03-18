@@ -1,6 +1,7 @@
 version: '3'
 services:
 
+# Devops
   api:
     build:
       context: .
@@ -12,19 +13,82 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - nginx-network
-      
+    
+# Weight
+  weight:
+    image: weight-image:2
+    env_file:
+      - ./weight.env
+    restart: always
+    networks:
+      - weight-network
+      - nginx-network
+    depends_on:
+      mysql-weight:
+        condition: service_healthy
+
+  mysql-weight:
+    image: mysql:8.3
+    env_file:
+      - ./weight.env
+    restart: always
+    networks:
+      - weight-network
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+      - weight_datbase:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 30s 
+      retries: 20 
+
+
+  # Billing
+  billing:
+    image: billing-image:2
+    env_file:
+      - ./billing.env
+    restart: always
+    networks:
+      - billing-network
+      - nginx-network
+    depends_on:
+      mysql-billing:
+        condition: service_healthy
+
+  mysql-billing:
+    image: mysql:8.3
+    env_file:
+      - ./billing.env
+    restart: always
+    networks:
+      - billing-network
+    volumes:
+      - ./db-init:/docker-entrypoint-initdb.d
+      - billing_datbase:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 30s 
+      retries: 20 
+
+  # Nginx
   nginx:
     image: nginx:1.24
     ports:
       - "8080:8080"
       - "8081:8081"
       - "8082:8082"
-    volumes:
-      - ./nginx_dev.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - api
+      - weight
+      - billing
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - nginx-network
 
+
 networks:
   nginx-network:
+  weight-network:
+  billing-network:
