@@ -1,9 +1,21 @@
-import json
-from flask import abort, request, jsonify
-from app import app, db
-from app.utils import check_db_health, get_table_contents
+from app.utils import check_db_health, get_table_contents, get_rates, processWeightSessions
 from app.models import Provider, Rates, Trucks
+from flask import abort, request, jsonify
+from datetime import datetime
+from app import app, db
+import requests
 import logging
+import json
+import os
+
+
+
+# Retrieve the WEIGHT_SERVER_URL environment variable from docker compose 
+weight_server_url = os.getenv('WEIGHT_SERVER_URL')
+
+# Check if the WEIGHT_SERVER_URL environment variable is not set
+if not weight_server_url:
+    raise ValueError("The WEIGHT_SERVER_URL environment variable must be set.")
 
 # For /tables route, testing only
 from sqlalchemy import MetaData
@@ -218,6 +230,95 @@ def getTruck(id):
 #   "tara": <int>, // last known tara in kg
 #   "sessions": [ <id1>,...]
 # }
+
+
+
+def fetch_weight_sessions(from_date, to_date, provider_id):
+    weight_server_url = os.getenv('WEIGHT_SERVER_URL')
+    if not weight_server_url:
+        raise ValueError("The WEIGHT_SERVER_URL environment variable must be set.")
+    
+    # Construct the URL with query parameters
+    url = f"{weight_server_url}/weight?from={from_date}&to={to_date}&filter=in,out,none"
+    
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Check for HTTP errors
+        return response.json()  # Assume the response is JSON
+    except requests.RequestException as e:
+        print(f"Error fetching weight sessions data: {e}")
+        return None
+
+
+
+# # Mock function to fetch weight sessions
+# def fetch_weight_sessions(fromDate, toDate, providerId):
+#     # This function should interact with your database or external API
+#     # to fetch weight sessions based on the provided arguments.
+#     # Below is a placeholder implementation.
+#     return [
+#         {"truck": "T-001", "produce": "apple", "neto": 10},
+#         {"truck": "T-002", "produce": "banana", "neto": 20},
+#         {"truck": "T-001", "produce": "apple", "neto": 15},
+#         {"truck": "T-003", "produce": "orange", "neto": 25},
+#         {"truck": "T-002", "produce": "banana", "neto": 30}
+#     ]
+# def processWeightSessions(weightSessions, rates): 
+#     billDetails = {
+#         "products": {},
+#         "total": 0
+#     }
+    
+    for session in weightSessions:
+        produce = session['produce']
+        neto = session['neto']
+        rate = rates.get(produce, 0)
+
+        if produce not in billDetails['products']:
+            billDetails['products'][produce] = {"count": 0, "amount": 0, "pay": 0}
+        
+        billDetails['products'][produce]['count'] += 1
+        billDetails['products'][produce]['amount'] += neto
+        billDetails['products'][produce]['pay'] += neto * rate
+
+    billDetails['total'] = sum(product['pay'] for product in billDetails['products'].values())
+
+    return billDetails
+
+
+def get_rates_for_test():
+    # Simulate fetching rates from the database
+    return {"apple": 100, "banana": 150, "orange": 200}
+
+
+def calculate_truck_count(weight_sessions):
+    unique_trucks = set(session['truck'] for session in weight_sessions)
+    return len(unique_trucks)
+
+def format_product_info(product, details):
+    return {
+        "product": product,
+        "count": details['count'],
+        "amount": details['amount'],
+        "rate": details['rate'],
+        "pay": details['pay']
+    }
+
+@app.route('/bill/<int:providerId>', methods=['GET'])
+def get_bill(providerId):
+    fromDate = request.args.get('from', datetime.now().strftime('%Y%m01000000'))
+    toDate = request.args.get('to', datetime.now().strftime('%Y%m%d%H%M%S'))
+    weight_sessions = fetch_weight_sessions(fromDate, toDate, providerId)
+
+    if weight_sessions is None:
+        return jsonify({'error': 'Failed to fetch weight sessions'}), 500
+
+    rates = get_rates_for_test()
+    billDetails = processWeightSessions(weight_sessions, rates)
+
+    return jsonify(billDetails)
+
+
 
 @app.route("/health", methods=["GET"])
 def health_check():
