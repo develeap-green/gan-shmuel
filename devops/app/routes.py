@@ -19,7 +19,11 @@ def health():
 
 @app.route('/monitor', methods=['GET'])
 def monitor():
-    return render_template('index.html')
+    data = {
+        'billing_status': True, 
+        'weight_status': False  
+    }
+    return render_template('index.html', data=data)
     
 
 @app.route('/trigger', methods=['POST'])
