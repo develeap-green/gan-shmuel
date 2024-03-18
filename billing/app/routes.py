@@ -202,10 +202,11 @@ def getTruck(id):
     truck = next((item for item in truckData if item['id'] == id), None)
     
     if truck:
+        sessionIds = [session['id'] for session in truck['sessions']]
         return jsonify({
             "id": truck['id'],
             "tara": truck['tara'],
-            "sessions": truck['sessions']
+            "sessions": sessionIds
         })
     
     else:
