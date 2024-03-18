@@ -18,7 +18,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./nginx-dev.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx_dev.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - api
     networks:
