@@ -184,6 +184,7 @@ def post_transaction():
 @app.route('/item/<id>')
 def get_item(id):
     # parse query params
+    res = {}
     try:
         now = datetime.now()
         to = request.args.get('to', now.strftime('%Y%m%d%H%M%S'))
@@ -236,7 +237,7 @@ def get_item(id):
         return {"error": "invalid item id"}, HTTPStatus.BAD_REQUEST
 
     if not res:
-        return "", HTTPStatus.NOT_FOUND
+        return "", HTTPStatus.OK
 
     return jsonify(res), HTTPStatus.OK
 
