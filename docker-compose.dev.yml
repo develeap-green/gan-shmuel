@@ -3,7 +3,7 @@ services:
 
   # Weight
   weight:
-    image: weight-image:1
+    image: weight-image:2
     env_file:
       - ./weight.env
     restart: always
@@ -31,7 +31,7 @@ services:
 
   # Billing
   billing:
-    image: billing-image:1
+    image: billing-image:2
     env_file:
       - ./billing.env
     restart: always

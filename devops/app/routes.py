@@ -136,7 +136,7 @@ def trigger():
 
 
         # Running testing env
-        run_dev_env = subprocess.run(["docker", "compose", "-f", "./docker-compose.dev.yml", "up"])
+        run_dev_env = subprocess.run(["docker", "compose", "-f", "./docker-compose.dev.yml", "up", "-d"])
         if run_dev_env.returncode != 0:
             logger.error(f"Run testing environment process failed.")
             send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Run testing environment')
@@ -168,7 +168,7 @@ def trigger():
             yaml.dump(compose_pro_data, file, sort_keys=False)
 
 
-        replace_production = subprocess.run(["docker", "compose", "-f", "./docker-compose.pro.yml", "up"])
+        replace_production = subprocess.run(["docker", "compose", "-f", "./docker-compose.pro.yml", "up", "-d"])
         if replace_production.returncode != 0:
             logger.error(f"Replacing production process failed.")
             send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replacing production')
@@ -178,6 +178,7 @@ def trigger():
         # subprocess.run(["git", "add", "."])
         # subprocess.run(["git", "commit", "-m", f"Update"])
         # subprocess.run(["git", "push", "origin", "main"])
+
 
         send_email(subject='Deploy succeeded', html_page='success_email.html', stage='')
         return jsonify({'status': 'success', 'message': 'Deployment successful'}), 200
