@@ -76,7 +76,7 @@ services:
 # Devops
   api:
     build:
-      context: .
+      context: ./devops
       dockerfile: ./devops/Dockerfile.api
     env_file:
       - ./devops/.env
