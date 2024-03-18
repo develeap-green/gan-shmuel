@@ -4,6 +4,7 @@ services:
   # Weight
   weight:
     image: weight-image:1
+    hostname: weight
     env_file:
       - ./weight.env
     restart: always
@@ -33,6 +34,7 @@ services:
   # Billing
   billing:
     image: billing-image:1
+    hostname: billing
     env_file:
       - ./billing.env
     restart: always
