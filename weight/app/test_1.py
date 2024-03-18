@@ -1,6 +1,10 @@
 import pytest
 from app import app
 import requests
+from random import sample
+import string
+import logging
+import random
 
 
 @pytest.fixture
@@ -53,4 +57,46 @@ def test_invalid_custom_time_2():
 
 def test_valid_id_object_not_found():
     response = requests.get(f"{base_url}/item/T-12345")
+    assert response.status_code == 200
+
+
+def test_session(client):
+    response = requests.get(f"{base_url}/session/")
+    assert response.status_code == 404
+
+
+def test_valid_item():
+    truck_id = ''.join(sample(string.ascii_letters, 4))
+    random_weight = random.randint(1, 1000)
+    r = requests.post(f"{base_url}/weight", json={
+        "direction": "in",
+        "truck": f"T-{truck_id}",
+        "containers": "c1,c2",
+        "weight": random_weight,
+        "unit": "kg",
+        "force": "true",
+        "produce": "Apples"
+    })
+    assert r.status_code == 201
+    r = r.json()
+    response = requests.get(f"{base_url}/item/T-{truck_id}")
+    assert response.status_code == 200
+    assert r['truck'] == f"T-{truck_id}"
+
+
+def test_valid_item_2():
+    truck_id = ''.join(sample(string.ascii_letters, 4))
+    random_weight = random.randint(1, 1000)
+    r = requests.post(f"{base_url}/weight", json={
+        "direction": "in",
+        "truck": f"T-{truck_id}",
+        "containers": "c1,c2",
+        "weight": random_weight,
+        "unit": "kg",
+        "force": "true",
+        "produce": "Apples"
+    })
+    assert r.status_code == 201
+    r = r.json()
+    response = requests.get(f"{base_url}/item/T-{truck_id}")
     assert response.status_code == 200
