@@ -136,6 +136,7 @@ def trigger():
 
 
         # Running testing env
+        logger.info(f"Running test environment.")
         run_dev_env = subprocess.run(["docker", "compose", "-f", "docker-compose.dev.yml", "up", "-d"])
         if run_dev_env.returncode != 0:
             logger.error(f"Run testing environment process failed.")
@@ -150,35 +151,39 @@ def trigger():
         #     send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing')
         #     return jsonify({'error': 'Testing failed.'}), 500
 
+        logger.info(f"Tearing down test environment.")
+        stop_dev_env = subprocess.run(["docker", "compose", "-f", "docker-compose.dev.yml", "down"])
+        if stop_dev_env.returncode != 0:
+            logger.error("Failed to stop running containers.")
+
 
         # Replace production
         logger.info(f"Replacing production")
 
-        # # Replace version
-        # with open('docker-compose.pro.yml', 'r') as file:
-        #     compose_pro_data = yaml.safe_load(file)
+        # Replace version
+        with open('docker-compose.pro.yml', 'r') as file:
+            compose_pro_data = yaml.safe_load(file)
 
-        # if weight_changed:
-        #     compose_pro_data['services']['weight']['image'] = weight_tag
+        if weight_changed:
+            compose_pro_data['services']['weight']['image'] = weight_tag
         
-        # if billing_changed:
-        #     compose_pro_data['services']['billing']['image'] = billing_tag
+        if billing_changed:
+            compose_pro_data['services']['billing']['image'] = billing_tag
         
-        # with open('docker-compose.pro.yml', 'w') as file:
-        #     yaml.dump(compose_pro_data, file, sort_keys=False)
+        with open('docker-compose.pro.yml', 'w') as file:
+            yaml.dump(compose_pro_data, file, sort_keys=False)
 
 
-        # replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])
-        # if replace_production.returncode != 0:
-        #     logger.error(f"Replacing production process failed.")
-        #     send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replacing production')
-        #     return jsonify({'error': 'Replacing production process failed.'}), 500
+        replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])
+        if replace_production.returncode != 0:
+            logger.error(f"Replacing production process failed.")
+            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replacing production')
+            return jsonify({'error': 'Replacing production process failed.'}), 500
 
         # # Update git with the new version
         # subprocess.run(["git", "add", "."])
         # subprocess.run(["git", "commit", "-m", f"Update"])
         # subprocess.run(["git", "push", "origin", "main"])
-
 
         send_email(subject='Deploy succeeded', html_page='success_email.html', stage='')
         return jsonify({'status': 'success', 'message': 'Deployment successful'}), 200
