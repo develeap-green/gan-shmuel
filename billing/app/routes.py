@@ -1,4 +1,5 @@
 from app.utils import check_db_health, get_table_contents, get_rates, processWeightSessions
+from app.rates import getRates, updateRatesFromFile
 from app.models import Provider, Rates, Trucks
 from flask import abort, request, jsonify
 from datetime import datetime
@@ -9,7 +10,6 @@ import json
 import os
 
 
-
 # Retrieve the WEIGHT_SERVER_URL environment variable from docker compose 
 weight_server_url = os.getenv('WEIGHT_SERVER_URL')
 
@@ -17,12 +17,12 @@ weight_server_url = os.getenv('WEIGHT_SERVER_URL')
 if not weight_server_url:
     raise ValueError("The WEIGHT_SERVER_URL environment variable must be set.")
 
+
 # For /tables route, testing only
 from sqlalchemy import MetaData
 
 # Get the logger object configured in init.py
 logger = logging.getLogger(__name__)
-
 
 @app.route('/')
 def root():
@@ -58,6 +58,7 @@ def createProvider():
     if existingProvider:
         return jsonify({"Error": f"Provider {name} already exists."}), 409
 
+    # Create a new provider after passing former tests
     newProvider = Provider(name=name)
     db.session.add(newProvider)
     db.session.commit()
@@ -197,9 +198,9 @@ def updateTruckProvider(truck_id):
         abort(500, error_msg)
 
 
-# # Mock trucks data file
-# with open('../mock_trucks_with_sessions.json', 'r') as file:
-#     truckData = json.load(file)
+# Mock trucks data file
+with open('in/mock_trucks_with_sessions.json', 'r') as file:
+    truckData = json.load(file)
 
 
 # Route to get truck data by id
@@ -213,10 +214,11 @@ def getTruck(id):
     truck = next((item for item in truckData if item['id'] == id), None)
     
     if truck:
+        sessionIds = [session['id'] for session in truck['sessions']]
         return jsonify({
             "id": truck['id'],
             "tara": truck['tara'],
-            "sessions": truck['sessions']
+            "sessions": sessionIds
         })
     
     else:
@@ -352,6 +354,30 @@ def show_tables_and_contents():
             table_name = table.name
             tables_contents[table_name] = get_table_contents(table)
         return jsonify(tables_contents)
+    
+
+@app.route("/rates", methods=["POST", "GET"])
+def updateRates():
+    if request.method == "POST":
+        return updateRatesFromFile()
+    elif request.method == "GET":
+        return getRates()
+        # querySets = Rates.query.all()
+        # if not querySets:
+        #     return jsonify({"error": "No data available to download"}), 404
+
+        # columns = ['product_id', 'rate', 'scope']
+
+        # try:
+        #     return excel.make_response_from_query_sets(
+        #         query_sets=querySets, 
+        #         column_names=columns,
+        #         file_type='csv',
+        #         file_name='rates'
+        #         )
+        # except Exception as e:
+        #         app.logger.error(f"Error generating csv file: {e}")
+        #         return jsonify({"error": "Error generating csv file"}), 500
 
 
 if __name__ == "__main__":
