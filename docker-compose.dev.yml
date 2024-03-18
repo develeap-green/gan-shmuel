@@ -21,7 +21,7 @@ services:
     networks:
       - test-network
     volumes:
-      - ./db:/docker-entrypoint-initdb.d
+      - ./weight/db:/docker-entrypoint-initdb.d
       - weight_datbase:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
@@ -49,7 +49,7 @@ services:
     networks:
       - test-network
     volumes:
-      - ./db-init:/docker-entrypoint-initdb.d
+      - ./billing/db-init:/docker-entrypoint-initdb.d
       - billing_datbase:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
