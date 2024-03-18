@@ -72,12 +72,14 @@ services:
     networks:
       - nginx-pro-network
       - devops-network
+    depends_on:
+      - api
+      - billing
+      - weight
 
 # Devops
   api:
-    build:
-      context: .
-      dockerfile: ./devops/Dockerfile.api
+    image: devops-image:1
     env_file:
       - ./devops/.env
     restart: always
