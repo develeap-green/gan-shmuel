@@ -1,0 +1,19 @@
+# Python
+FROM python:3.10
+
+# Docker
+RUN apt-get update && \
+    apt-get install -y docker.io
+
+# Set working directory
+WORKDIR /app
+
+# Copy and install dependencies
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Copy application directory
+COPY . .
+
+# Run Gunicorn server
+CMD ["gunicorn", "run:app", "--bind", "0.0.0.0:5000", "--workers", "4"]

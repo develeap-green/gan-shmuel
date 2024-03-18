@@ -1,9 +1,5 @@
 import csv
 import json
-from operator import contains
-import os
-import select
-from venv import logger
 from flask import jsonify, request
 from app import app, db
 from sqlalchemy.sql import text
@@ -11,6 +7,25 @@ import logging
 from http import HTTPStatus
 from datetime import datetime
 from app.models import Transactions, ContainersRegistered
+from app.models import ContainersRegistered, Transactions
+from datetime import datetime
+
+
+@app.route('/session/<int:id>', methods=['GET'])
+def get_session(id):
+    transaction = db.one_or_404(db.session.query(
+        Transactions).filter_by(session_id=id))
+    try:
+        res = {
+            "id": transaction.session_id,
+            "truck": transaction.truck,
+            "bruto": transaction.bruto,
+            "truckTara": transaction.truckTara,
+            "neto": transaction.neto,
+        }
+        return res
+    except:
+        return "404 no session id"
 
 
 @app.route('/weight')
@@ -27,7 +42,7 @@ def retrieve_weight_list():
         to = datetime.strptime(to, "%Y%m%d%H%M%S")
 
     except ValueError as err:
-        logger.error(f"Error: bad values passed into {request.args}: {err}")
+        logging.error(f"Error: bad values passed into {request.args}: {err}")
         return "", HTTPStatus.UNPROCESSABLE_ENTITY
 
     transactions = db.session.query(Transactions).filter(Transactions.datetime >= _from,
@@ -42,6 +57,18 @@ def retrieve_weight_list():
         "produce": t.produce,
         "containers": [container for container in t.containers.split(',')] or [],
     } for t in transactions]
+
+    return jsonify(res), HTTPStatus.OK
+
+
+@app.route('/unknown')
+def get_uknown_containers():
+    containers = db.session.query(ContainersRegistered).filter(
+        ContainersRegistered.weight == None).all()
+    res = [c.container_id for c in containers]
+
+    if not res:
+        return '', HTTPStatus.NOT_FOUND
 
     return jsonify(res), HTTPStatus.OK
 
@@ -190,3 +217,67 @@ def register_container_json(file_content):
     db.session.bulk_insert_mappings(ContainersRegistered, [
                                     {"container_id": c_id, "weight": weight, "unit": unit} for c_id, weight, unit in containers_to_add])
     db.session.commit()
+# GET /item/<id>?from=t1&to=t2
+# - id is for an item (truck or container). 404 will be returned if non-existent
+# - t1,t2 - date-time stamps, formatted as yyyymmddhhmmss. server time is assumed.
+# default t1 is "1st of month at 000000". default t2 is "now".
+# Returns a json:
+# { "id": <str>,
+#   "tara": <int> OR "na", // for a truck this is the "last known tara"
+#   "sessions": [ <id1>,...]
+# }
+
+
+@app.route('/item/<id>')
+def get_item(id):
+    # parse query params
+    try:
+        now = datetime.now()
+        to = request.args.get('to', now.strftime('%Y%m%d%H%M%S'))
+        _from = request.args.get('from', now.replace(
+            day=1, hour=0, minute=0, second=0).strftime('%Y%m%d%H%M%S'))
+
+        _from = datetime.strptime(_from, "%Y%m%d%H%M%S")
+        to = datetime.strptime(to, "%Y%m%d%H%M%S")
+    except ValueError as err:
+        logging.error(f"Error: bad values passed into {request.args}: {err}")
+        return "", HTTPStatus.UNPROCESSABLE_ENTITY
+
+    try:
+        # handle trucks
+        if id[0] == "T":
+            transactions = db.session.query(Transactions).filter(
+                Transactions.truck == id, Transactions.datetime >= _from, Transactions.datetime <= to).all()
+            if transactions:
+                session_list = [str(t.session_id) for t in transactions]
+                res = {
+                    "id": id,
+                    "tara": transactions[0].truckTara,
+                    "sessions": session_list
+                }
+        # handle containers
+        elif id[0] == "C":
+            transactions = db.session.query(Transactions).filter(
+                Transactions.containers.contains(id), Transactions.datetime >= _from, Transactions.datetime <= to).all()
+
+            if transactions:
+                container_tara = db.one_or_404(db.session.query(ContainersRegistered).filter(
+                    ContainersRegistered.container_id == id))
+
+                session_list = [str(t.session_id) for t in transactions]
+                res = {
+                    "id": id,
+                    "tara": container_tara.weight,
+                    "session_id": session_list
+                }
+
+        else:
+            raise Exception
+
+    except Exception as err:
+        logging.error("Item id {id} is either invalid or not in the database")
+        return {"error": "invalid item id"}, HTTPStatus.BAD_REQUEST
+    if not res:
+        return "", HTTPStatus.NOT_FOUND
+
+    return jsonify(res), HTTPStatus.OK
