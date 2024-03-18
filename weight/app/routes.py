@@ -1,6 +1,7 @@
 import csv
 import json
 from flask import jsonify, request
+from sqlalchemy import desc
 from app import app, db
 from sqlalchemy.sql import text
 import logging
@@ -9,23 +10,159 @@ from datetime import datetime
 from app.models import Transactions, ContainersRegistered
 from app.models import ContainersRegistered, Transactions
 from datetime import datetime
+import random
+
+# random.randrange(3, 9)
+
+
+@app.route('/weight', methods=['POST'])
+def post_transaction():
+    # if fails should return 415 unsupported
+    data = request.get_json()
+
+    if not data:
+        logging.error(
+            f"no data in request body")
+        return {"error": "please provide required parameters in the request body"}, HTTPStatus.BAD_REQUEST
+
+    if data['truck'] and not data['truck'].startswith('T-'):
+        logging.error(
+            f"Attempted registering truck with invalid license prefixed: {data['truck']}")
+        return {"error": "truck license must be prefixed"}, HTTPStatus.BAD_REQUEST
+
+    last_row = db.session.query(Transactions).order_by(
+        desc(Transactions.id)).first()
+
+    force = data.get('force') or False
+    # truck gets in
+    if data['direction'] == 'in':
+        if last_row and last_row.direction == 'in' and not force:
+            return {"error": "Cannot weight in another truck before another finished"}, HTTPStatus.BAD_REQUEST
+
+        # take data create transaction of in
+        session_id = random.randrange(1001, 9999999)
+        in_trans = Transactions(datetime=datetime.now(),
+                                direction="in",
+                                truck=data["truck"],
+                                containers=data["containers"],
+                                bruto=data["weight"],
+                                produce=data['produce'],
+                                session_id=session_id)
+        db.session.add(in_trans)
+        db.session.commit()
+
+        # return data
+        return {"id": in_trans.id, "truck": in_trans.truck, "bruto": in_trans.bruto}, HTTPStatus.CREATED
+
+    # weight container
+    elif data['direction'] == 'none':
+        if last_row and last_row.direction == 'in':
+            return {"error": "Cannot weight container until truck weights out"}, HTTPStatus.BAD_REQUEST
+        # find weight of a registered container or cancel if not registered
+        container = db.session.query(ContainersRegistered).where(
+            ContainersRegistered.container_id == data['containers']).one_or_none()
+
+        # unregistered containers are weighted on their own
+        if not container:
+            if not data.get('unit'):
+                error = f"Container {data['containers']} is not registered, cannot register without 'unit' parameter"
+                logging.error(error)
+                return {"error": error}, HTTPStatus.BAD_REQUEST
+
+            new_container = ContainersRegistered(
+                container_id=data['containers'], weight=data['weight'], unit=data['unit'])
+            db.seesion.add(new_container)
+            db.session.commit()
+
+            return new_container, HTTPStatus.CREATED
+
+        # remove weight of cantainer from data[weight] and add to neto
+        session_id = random.randrange(1001, 9999999)
+        none_trans = Transactions(datetime=datetime.now(),
+                                  direction="none",
+                                  containers=container.container_id,
+                                  bruto=data["weight"],
+                                  neto=data['weight'] - container.weight,
+                                  produce=data['produce'],
+                                  session_id=session_id)
+        db.session.add(none_trans)
+        db.session.commit()
+
+        return {"id": none_trans.id, "container": container.container_id, "bruto": none_trans.bruto}, HTTPStatus.CREATED
+
+    # truck gets out
+    elif data['direction'] == 'out':
+        if last_row and last_row.direction == 'out' and not force:
+            return {"error": "weight out is already in session "}, HTTPStatus.BAD_REQUEST
+
+        elif last_row and last_row.direction != 'in' and not (last_row.direction == 'out' and force):
+            return {"error": "weight out must be proceeded by a weight in"}, HTTPStatus.BAD_REQUEST
+
+        if not last_row:  # satisfy type checker
+            return "imposible path, first row would never be out", 400
+
+        # get all containers weights sum
+        if last_row.containers:
+            containers = last_row.containers.split(',')
+        else:
+            containers = ''
+
+        containers = db.session.query(ContainersRegistered).filter(
+            ContainersRegistered.container_id.in_(containers)).all()
+
+        session_id = last_row.session_id
+
+        truck_tara = int(data['weight'])
+
+        weights = [c.weight for c in containers]
+
+        if all(isinstance(w, int) for w in weights):
+            tara_containers = sum(weights)
+            logging.info(
+                f"XXXXXXXXXX {truck_tara} {tara_containers} XXXXXXXXXX")
+            neto = truck_tara - int(tara_containers)
+        else:
+            tara_containers = None
+            neto = None
+
+        out_trans = Transactions(datetime=datetime.now(),
+                                 direction="out",
+                                 truck=data['truck'],
+                                 bruto=last_row.bruto,
+                                 containers=last_row.containers,
+                                 truckTara=truck_tara,
+                                 neto=neto,
+                                 produce=last_row.produce,
+                                 session_id=session_id)
+
+        db.session.add(out_trans)
+        db.session.commit()
+
+        return {"id": out_trans.id,
+                "truck": out_trans.truck,
+                "bruto": out_trans.bruto,
+                "truckTara": out_trans.truckTara,
+                "neto": out_trans.neto,
+                }, HTTPStatus.CREATED
+
+    error = f"bad direction argument: expected: \"in,out,none\" - got {data['direction']}"
+    logging.error(error)
+    return {"error": error}, HTTPStatus.BAD_REQUEST
 
 
 @app.route('/session/<int:id>', methods=['GET'])
 def get_session(id):
     transaction = db.one_or_404(db.session.query(
         Transactions).filter_by(session_id=id))
-    try:
-        res = {
-            "id": transaction.session_id,
-            "truck": transaction.truck,
-            "bruto": transaction.bruto,
-            "truckTara": transaction.truckTara,
-            "neto": transaction.neto,
-        }
-        return res
-    except:
-        return "404 no session id"
+
+    res = {
+        "id": transaction.session_id,
+        "truck": transaction.truck,
+        "bruto": transaction.bruto,
+        "truckTara": transaction.truckTara,
+        "neto": transaction.neto,
+    }
+    return res
 
 
 @app.route('/weight')
@@ -217,15 +354,6 @@ def register_container_json(file_content):
     db.session.bulk_insert_mappings(ContainersRegistered, [
                                     {"container_id": c_id, "weight": weight, "unit": unit} for c_id, weight, unit in containers_to_add])
     db.session.commit()
-# GET /item/<id>?from=t1&to=t2
-# - id is for an item (truck or container). 404 will be returned if non-existent
-# - t1,t2 - date-time stamps, formatted as yyyymmddhhmmss. server time is assumed.
-# default t1 is "1st of month at 000000". default t2 is "now".
-# Returns a json:
-# { "id": <str>,
-#   "tara": <int> OR "na", // for a truck this is the "last known tara"
-#   "sessions": [ <id1>,...]
-# }
 
 
 @app.route('/item/<id>')
@@ -250,9 +378,11 @@ def get_item(id):
                 Transactions.truck == id, Transactions.datetime >= _from, Transactions.datetime <= to).all()
             if transactions:
                 session_list = [str(t.session_id) for t in transactions]
+                truck_tara = next(
+                    (t.truckTara for t in transactions if t.truckTara), None)
                 res = {
                     "id": id,
-                    "tara": transactions[0].truckTara,
+                    "tara": truck_tara,
                     "sessions": session_list
                 }
         # handle containers
