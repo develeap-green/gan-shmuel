@@ -36,7 +36,7 @@ services:
     image: billing-image:1
     hostname: billing
     env_file:
-      - ./devops/devops/billing.env
+      - ./devops/billing.env
     restart: always
     networks:
       - billing-network
@@ -79,7 +79,7 @@ services:
       context: .
       dockerfile: Dockerfile.api
     env_file:
-      - ./.env
+      - ./devops/.env
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
