@@ -17,14 +17,16 @@ services:
     image: nginx:1.24
     ports:
       - "8080:8080"
+      - "8081:8081"
+      - "8082:8082"
     volumes:
       - ./nginx_dev.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - api
     networks:
       - network
-
+      - nginx-network
 
 networks:
   network:
-
+  nginx-network:
