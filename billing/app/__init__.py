@@ -12,10 +12,10 @@ excel.init_excel(app)
 
 # Configure the root logger
 # logging.basicConfig(level=logging.INFO, filename=log_file, filemode='a', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+#logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # Retrieve MySQL environment variables from Docker Compose
-MYSQL_HOST = os.environ.get('MYSQL_HOST', 'db')  # Default to db if not provided
+MYSQL_HOST = os.environ.get('MYSQL_HOST', 'mysql-billing')  # Default to db if not provided
 MYSQL_USER = os.environ.get('MYSQL_USER', 'user')       # Default to 'user' if not provided
 MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', 'pass')  # Default to 'pass' if not provided
 

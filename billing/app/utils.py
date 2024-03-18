@@ -9,7 +9,7 @@ from app import db
 def check_db_health():
     try:
         with pymysql.connect(
-            host='db',
+            host='mysql-billing',
             user='user',
             password='pass',
             database='billing',
@@ -20,7 +20,7 @@ def check_db_health():
                 cursor.execute("SELECT 1")
             return {"status": "OK"}
     except pymysql.MySQLError as e:
-        logger.error(f"Database health check failed: {e}")
+        # logger.error(f"Database health check failed: {e}")
         return {"status": "Failure", "reason": str(e)}
 
 
@@ -30,5 +30,5 @@ def get_table_contents(table):
         records = db.session.query(table).all()
         return [str(record) for record in records]
     except Exception as e:
-        logger.error(f"Error retrieving table contents: {e}")
+        # logger.error(f"Error retrieving table contents: {e}")
         return []
