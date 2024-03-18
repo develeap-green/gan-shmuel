@@ -1,158 +1,47 @@
-from app.utils import check_db_health, get_table_contents, get_rates, processWeightSessions
-from app.rates import getRates, updateRatesFromFile
-from app.models import Provider, Rates, Trucks
-from flask import abort, request, jsonify
-from datetime import datetime
-from app import app, db
-import requests
-import logging
-import json
+from app.utils import checkDBHealth, showTablesContents, downloadRates, updateRatesFromFile, getTheBill,\
+      createTheProvider, updateTheProvider, createTheTruck, updateTheTruckProvider, getTheTruck
+from flask import request, jsonify
+from app import app
 import os
+#import logging
 
-
+##################################
 # Retrieve the WEIGHT_SERVER_URL environment variable from docker compose 
-weight_server_url = os.getenv('WEIGHT_SERVER_URL')
-
+#weight_server_url = os.getenv('WEIGHT_SERVER_URL')
 # Check if the WEIGHT_SERVER_URL environment variable is not set
-if not weight_server_url:
-    raise ValueError("The WEIGHT_SERVER_URL environment variable must be set.")
+#if not weight_server_url:
+#    raise ValueError("The WEIGHT_SERVER_URL environment variable must be set.")
+#####################################
 
-
-# For /tables route, testing only
-from sqlalchemy import MetaData
-
+#######################################################
 # Get the logger object configured in init.py
-logger = logging.getLogger(__name__)
+#logger = logging.getLogger(__name__)
+####################################################3
 
 @app.route('/')
 def root():
     return jsonify({'message': 'Welcome to the Billing API'}), 200
 
 
+# Creates a new provider record
 @app.route('/provider', methods=["POST"])
 def createProvider():
-    """
-       Create Provider Route
-       Creates a new provider record based on the provided name.
-       Request JSON Structure:
-           {
-               "name": "Provider Name"
-           }
-       Returns:
-           JSON: A success message along with the unique provider ID.
-    """
-    # Store the provider POST request
-    requestData = request.json
-
-    # Return 400 error if no name is given in the request. 
-    # Check for empty or whitespace only string.
-    name = requestData.get("name", "").strip()
-    if not name:
-        error_msg = "Missing or empty 'name' field in the request."
-        logger.info(f"Error 400: {error_msg}")
-        return jsonify({"Error": error_msg}), 400
-
-    # Check if provider name exists, return 409 status code if it does.
-    existingProvider = Provider.query.filter_by(name=name).first()
-
-    if existingProvider:
-        return jsonify({"Error": f"Provider {name} already exists."}), 409
-
-    # Create a new provider after passing former tests
-    newProvider = Provider(name=name)
-    db.session.add(newProvider)
-    db.session.commit()
-
-    return jsonify({"Message": f"Provider {name} added successfully.", "id": newProvider.id}), 201
+    return createTheProvider()
 
 
+# Update provider name
 @app.route('/provider/<int:providerId>', methods=['PUT'])
 def updateProvider(providerId):
-    """
-        Update Provider Route
-        Updates the name of an existing provider.
-        Parameters:
-            providerId (int): The unique identifier of the provider to be updated.
-        Returns:
-            JSON: A success message indicating the provider update.
-    """
-    # Attempt to retrieve the 'name' value from the JSON in the PUT request
-    updateName = request.json.get('name', None)
-    if not updateName:
-        # If 'name' is not provided or is empty, return a 400 Bad Request error
-        error_msg = 'Missing or empty "name" field in the request.'
-        logger.info(f'Error 400: {error_msg}')
-        abort(400, error_msg)
-
-    provider = Provider.query.get(providerId)
-    # If the provider does not exist, return a 404 Not Found error
-    if provider is None:
-        error_msg = f'Provider with id {providerId} does not exist.'
-        logger.info(f'Error 404: {error_msg}')
-        abort(404, error_msg)
-
-    try:
-        # Update the provider's name with the new name provided in the PUT request
-        provider.name = updateName
-        db.session.commit()  # Commit the transaction to save the changes in the database
-        # Return a success message with a 200 OK status code
-        return jsonify({'Message': 'Provider updated successfully.'}), 200
-
-    except Exception as e:
-        db.session.rollback()
-        abort(500, f'An error occurred: {str(e)}')
+    return updateTheProvider(providerId)
 
 
+# Registers a truck in the system
 @app.route('/truck', methods=["POST"])
 def createTruck():
-    """
-        Create Truck Route
-        Registers a new truck in the system.
-        Request JSON Structure:
-            {
-                "provider_id": 123,
-                "id": "ABC123"
-            }
-        Returns:
-            JSON: A success message indicating the successful registration of the truck.
-    """
-    # Store the Truck POST request
-    data = request.json
-    # If 'newTruck' is not provided or is empty, return a 400 Bad Request error
-    if not data or 'provider_id' not in data or 'id' not in data:  
-        error_msg = 'The "provider_id" and "truck id" fields are required.'
-        logger.info(f'Error 400: {error_msg}')
-        abort(400, error_msg)
-
-    if data:
-        providerId = data.get('provider_id')
-        truckId = data.get('id')
-    else:
-        # Handle the case where data is None
-        error_msg = 'No JSON data provided.'
-        logger.info(f'Error 400: {error_msg}')
-        abort(400, error_msg)
-
-    # Check if Truck name exists, return 409 status code if it does.
-    existingTruck = Trucks.query.filter_by(id=truckId).first()
-    if existingTruck:
-        error_msg = f"Truck with license plate {truckId} already exists."
-        logger.info(f"Error 409: {error_msg}")
-        return jsonify({"Error": error_msg}), 409
-
-    provider = Provider.query.get(providerId)
-    if provider is None:
-        error_msg = f'Provider with ID {providerId} does not exist.'
-        logger.info(f'Error 404: {error_msg}')
-        abort(404, error_msg)
-
-    newTruck = Trucks(id=truckId, provider_id=providerId)
-    db.session.add(newTruck)
-    db.session.commit()
-
-    return jsonify({"Success": f"Truck with license plate {truckId} registered successfully."}), 201
+    return createTheTruck()
 
 
+# Update provider id
 @app.route('/truck/<string:truck_id>/', methods=['PUT'])
 def updateTruckProvider(truck_id):
     """
@@ -163,221 +52,60 @@ def updateTruckProvider(truck_id):
         Returns:
             JSON: A success message indicating the truck provider update.
     """
-    # Attempt to retrieve the 'provider_id' value from the JSON in the PUT request
-    updateProviderId = request.json.get('provider_id', None)
-    if updateProviderId is None:
-        # If 'provider_id' is not provided or is empty, return a 400 Bad Request error
-        error_msg = 'The provider_id field is required.'
-        logger.info(f'Error 400: {error_msg}')
-        abort(400, error_msg)
-
-    truck = Trucks.query.get(truck_id)
-    if truck is None:
-        # If the truck does not exist, return a 404 Not Found error
-        error_msg = f'Truck with id {truck_id} does not exist.'
-        logger.info(f'Error 404: {error_msg}')
-        abort(404, error_msg)
-
-    provider = Provider.query.get(updateProviderId)
-    if provider is None:
-        # If the new provider does not exist, return a 404 Not Found error
-        error_msg = f'Provider with id {updateProviderId} does not exist.'
-        logger.info(f'Error 404: {error_msg}')
-        abort(404, error_msg)
-
-    try:
-        # Update the truck's provider_id with the new provider_id provided in the PUT request
-        truck.provider_id = updateProviderId
-        db.session.commit()  # Commit the transaction to save the changes in the database
-        # Return a success message with a 200 OK status code
-        return jsonify({'message': f'Truck {truck_id} provider updated successfully.'}), 200
-    except Exception as e:
-        db.session.rollback()
-        error_msg = f'An error occurred: {str(e)}'
-        logger.error(f'Error 500: {error_msg}')
-        abort(500, error_msg)
-
-
-# Mock trucks data file
-with open('in/mock_trucks_with_sessions.json', 'r') as file:
-    truckData = json.load(file)
+    return updateTheTruckProvider(truck_id)
 
 
 # Route to get truck data by id
 # Display truck id, last known tara in kg and sessions
 @app.route('/truck/<id>', methods=['GET'])
 def getTruck(id):
-
-    # Remove whitespace and newlines from the truck_id
-    id = id.strip()
-
-    truck = next((item for item in truckData if item['id'] == id), None)
-    
-    if truck:
-        sessionIds = [session['id'] for session in truck['sessions']]
-        return jsonify({
-            "id": truck['id'],
-            "tara": truck['tara'],
-            "sessions": sessionIds
-        })
-    
-    else:
-        return jsonify({"error": f"Truck with id {id} not found."}), 404
-# GET /truck/<id>?from=t1&to=t2
-# - id is the truck license. 404 will be returned if non-existent
-# - t1,t2 - date-time stamps, formatted as yyyymmddhhmmss. server time is assumed.
-# default t1 is "1st of month at 000000". default t2 is "now".
-# Returns a json:
-# { "id": <str>,
-#   "tara": <int>, // last known tara in kg
-#   "sessions": [ <id1>,...]
-# }
+    return getTheTruck(id)
 
 
-
-def fetch_weight_sessions(from_date, to_date, provider_id):
-    weight_server_url = os.getenv('WEIGHT_SERVER_URL')
-    if not weight_server_url:
-        raise ValueError("The WEIGHT_SERVER_URL environment variable must be set.")
-    
-    # Construct the URL with query parameters
-    url = f"{weight_server_url}/weight?from={from_date}&to={to_date}&filter=in,out,none"
-    
-    try:
-        response = requests.get(url)
-        response.raise_for_status()  # Check for HTTP errors
-        return response.json()  # Assume the response is JSON
-    except requests.RequestException as e:
-        print(f"Error fetching weight sessions data: {e}")
-        return None
-
-
-
-# # Mock function to fetch weight sessions
-# def fetch_weight_sessions(fromDate, toDate, providerId):
-#     # This function should interact with your database or external API
-#     # to fetch weight sessions based on the provided arguments.
-#     # Below is a placeholder implementation.
-#     return [
-#         {"truck": "T-001", "produce": "apple", "neto": 10},
-#         {"truck": "T-002", "produce": "banana", "neto": 20},
-#         {"truck": "T-001", "produce": "apple", "neto": 15},
-#         {"truck": "T-003", "produce": "orange", "neto": 25},
-#         {"truck": "T-002", "produce": "banana", "neto": 30}
-#     ]
-# def processWeightSessions(weightSessions, rates): 
-#     billDetails = {
-#         "products": {},
-#         "total": 0
-#     }
-    
-    for session in weightSessions:
-        produce = session['produce']
-        neto = session['neto']
-        rate = rates.get(produce, 0)
-
-        if produce not in billDetails['products']:
-            billDetails['products'][produce] = {"count": 0, "amount": 0, "pay": 0}
-        
-        billDetails['products'][produce]['count'] += 1
-        billDetails['products'][produce]['amount'] += neto
-        billDetails['products'][produce]['pay'] += neto * rate
-
-    billDetails['total'] = sum(product['pay'] for product in billDetails['products'].values())
-
-    return billDetails
-
-
-def get_rates_for_test():
-    # Simulate fetching rates from the database
-    return {"apple": 100, "banana": 150, "orange": 200}
-
-
-def calculate_truck_count(weight_sessions):
-    unique_trucks = set(session['truck'] for session in weight_sessions)
-    return len(unique_trucks)
-
-def format_product_info(product, details):
-    return {
-        "product": product,
-        "count": details['count'],
-        "amount": details['amount'],
-        "rate": details['rate'],
-        "pay": details['pay']
-    }
-
+# Get the bill
 @app.route('/bill/<int:providerId>', methods=['GET'])
-def get_bill(providerId):
-    fromDate = request.args.get('from', datetime.now().strftime('%Y%m01000000'))
-    toDate = request.args.get('to', datetime.now().strftime('%Y%m%d%H%M%S'))
-    weight_sessions = fetch_weight_sessions(fromDate, toDate, providerId)
-
-    if weight_sessions is None:
-        return jsonify({'error': 'Failed to fetch weight sessions'}), 500
-
-    rates = get_rates_for_test()
-    billDetails = processWeightSessions(weight_sessions, rates)
-
-    return jsonify(billDetails)
+def getBill(providerId):
+    return getTheBill(providerId)
 
 
-
+# Check the health of the DB
 @app.route("/health", methods=["GET"])
-def health_check():
+def healthCheck():
     """
         Health Check Route
         Performs a health check on the system, verifying the availability of external resources.
         Returns:
             JSON: A status message indicating the health status of the system.
     """
-    db_health = check_db_health()
+    dbHealth = checkDBHealth()
 
-    if db_health["status"] == "OK":
+    if dbHealth["status"] == "OK":
         return jsonify({"Status": "OK"}), 200
     else:
-        return jsonify({"Status": "Failure", "details": {"db_health": db_health}}), 500
+        return jsonify({"Status": "Failure", "details": {"db_health": dbHealth}}), 500
 
 
+####################################################################
+# Show the tables inside the DB - FOR TEST PURPOSES
 @app.route('/tables', methods=['GET'])
-def show_tables_and_contents():
+def showTablesAndContents():
     """
         Show Tables and Contents Route (For Testing)
         Retrieves the contents of all database tables for testing purposes.
         Returns:
             JSON: Contents of all database tables.
     """
-    with app.app_context():
-        meta = MetaData()
-        meta.reflect(bind=db.engine)
-        tables_contents = {}
-        for table in meta.tables.values():
-            table_name = table.name
-            tables_contents[table_name] = get_table_contents(table)
-        return jsonify(tables_contents)
+    return showTablesContents()
+#####################################################################
     
 
+# Post= upload new rates , Get= download a file of the rates
 @app.route("/rates", methods=["POST", "GET"])
 def updateRates():
     if request.method == "POST":
         return updateRatesFromFile()
     elif request.method == "GET":
-        return getRates()
-        # querySets = Rates.query.all()
-        # if not querySets:
-        #     return jsonify({"error": "No data available to download"}), 404
-
-        # columns = ['product_id', 'rate', 'scope']
-
-        # try:
-        #     return excel.make_response_from_query_sets(
-        #         query_sets=querySets, 
-        #         column_names=columns,
-        #         file_type='csv',
-        #         file_name='rates'
-        #         )
-        # except Exception as e:
-        #         app.logger.error(f"Error generating csv file: {e}")
-        #         return jsonify({"error": "Error generating csv file"}), 500
+        return downloadRates()
 
 
 if __name__ == "__main__":
