@@ -5,10 +5,7 @@ from app.models import Rates
 import sqlalchemy
 from sqlalchemy import and_
 from flask import jsonify
-
-
-
-
+import flask_excel as excel
 
 def updateRatesFromFile():
     # Iterate over files in the 'in' directory
@@ -44,3 +41,23 @@ def updateRatesFromFile():
 #            providerProduct.commit()
             db.session.commit()
     return "updated"
+
+
+def getRates():
+
+    querySets = Rates.query.all()
+    if not querySets:
+        return jsonify({"error": "No data available to download"}), 404
+
+    columns = ['product_id', 'rate', 'scope']
+
+    try:
+        return excel.make_response_from_query_sets(
+                query_sets=querySets, 
+                column_names=columns,
+                file_type='csv',
+                file_name='rates'
+                )
+    except Exception as e:
+                app.logger.error(f"Error generating csv file: {e}")
+                return jsonify({"error": "Error generating csv file"}), 500

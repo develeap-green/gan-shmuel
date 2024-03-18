@@ -1,17 +1,17 @@
 import json
+import logging
 from flask import abort, request, jsonify
 from app import app, db
 from app.utils import check_db_health, get_table_contents
 from app.models import Provider, Rates, Trucks
-import logging
-from app.rates import updateRatesFromFile
+from app.rates import getRates, updateRatesFromFile
+
 
 # For /tables route, testing only
 from sqlalchemy import MetaData
 
 # Get the logger object configured in init.py
 logger = logging.getLogger(__name__)
-
 
 @app.route('/')
 def root():
@@ -47,6 +47,7 @@ def createProvider():
     if existingProvider:
         return jsonify({"Error": f"Provider {name} already exists."}), 409
 
+    # Create a new provider after passing former tests
     newProvider = Provider(name=name)
     db.session.add(newProvider)
     db.session.commit()
@@ -260,8 +261,23 @@ def updateRates():
     if request.method == "POST":
         return updateRatesFromFile()
     elif request.method == "GET":
-        return "not implemented yet"
+        return getRates()
+        # querySets = Rates.query.all()
+        # if not querySets:
+        #     return jsonify({"error": "No data available to download"}), 404
 
+        # columns = ['product_id', 'rate', 'scope']
+
+        # try:
+        #     return excel.make_response_from_query_sets(
+        #         query_sets=querySets, 
+        #         column_names=columns,
+        #         file_type='csv',
+        #         file_name='rates'
+        #         )
+        # except Exception as e:
+        #         app.logger.error(f"Error generating csv file: {e}")
+        #         return jsonify({"error": "Error generating csv file"}), 500
 
 
 if __name__ == "__main__":

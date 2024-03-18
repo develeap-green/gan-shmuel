@@ -2,8 +2,10 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import os
 import logging
+import flask_excel as excel
 
 app = Flask(__name__)
+excel.init_excel(app)
 
 # Configure logging to output to a file - DISABLED FOR NOW
 # log_file = './logs/app.log'  # Path to the log file
