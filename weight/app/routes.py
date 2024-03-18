@@ -10,6 +10,7 @@ from app.utils import load_weights
 from datetime import datetime
 import random
 
+
 @app.route('/weight')
 def retrieve_weight_list():
     try:
@@ -181,6 +182,7 @@ def post_transaction():
 @app.route('/item/<id>')
 def get_item(id):
     # parse query params
+    res = {}
     try:
         now = datetime.now()
         to = request.args.get('to', now.strftime('%Y%m%d%H%M%S'))
@@ -230,7 +232,7 @@ def get_item(id):
         logging.error("Item id {id} is either invalid or not in the database")
         return {"error": "invalid item id"}, HTTPStatus.BAD_REQUEST
     if not res:
-        return "", HTTPStatus.NOT_FOUND
+        return "", HTTPStatus.OK
 
     return jsonify(res), HTTPStatus.OK
 
