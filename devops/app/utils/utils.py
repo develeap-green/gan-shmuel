@@ -20,8 +20,8 @@ def send_email(subject, html_page, stage):
     try:
         recipients = ' '.join([email.split('@')[0] for email in EMAILS])
         html_body = render_template(html_page, recipients=recipients, stage=stage)
-        # msg = Message(subject, recipients=EMAILS, html=html_body)
-        # mail.send(msg)
+        msg = Message(subject, recipients=EMAILS, html=html_body)
+        mail.send(msg)
         logger.info(f"Email was sent successfully to {recipients}")
     except Exception as e:
         logger.error(f'Error sending email: {e}')

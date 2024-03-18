@@ -174,10 +174,6 @@ def trigger():
             yaml.dump(compose_pro_data, file, sort_keys=False)
 
 
-        # Stop nginx
-        logger.info(f"Stop nginx!")
-        replace_production = subprocess.run(["docker", "stop", "devops-nginx-1"])
-
         replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])
         if replace_production.returncode != 0:
             logger.error(f"Replacing production process failed.")
