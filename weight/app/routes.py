@@ -90,12 +90,11 @@ def upload_batch_weight():
     file_content = request.data
 
     if not file_content:
-        return jsonify({'error': 'No file data found in request body'})
+        return jsonify({'error': 'No file data found in request body'}),400
 
     try:
-        load_weights(file_content)
+        return load_weights(file_content)
 
-        return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)})
 
@@ -107,14 +106,13 @@ def load_weights(file_content):
 
     # Determine if the content represents JSON data or CSV
     if is_json(file_content):
-        register_container_json(file_content)
+        return register_container_json(file_content)
     elif is_csv(file_content):
-        register_container_csv(file_content)
+        return register_container_csv(file_content)
     else:
-        logging.error(
-            "Unsupported file format. Please provide a CSV or JSON file.")
-        raise ValueError(
-            "Unsupported file format. Please provide a CSV or JSON file.")
+        error_message = "Unsupported file format. Please provide a CSV or JSON file."
+        logging.error(error_message)
+        return jsonify({'error': error_message}), 400
 
 
 def is_json(file_content):
@@ -156,10 +154,9 @@ def register_container_csv(file_content):
     expected_headers = [['id', 'kg'], ['id', 'lbs']]
 
     if header not in expected_headers:
-        logging.error(
-            "Invalid CSV header. Expected ('id', 'kg') or ('id', 'lbs').")
-        raise ValueError(
-            "Invalid CSV file. Expected ('id', 'kg') or ('id', 'lbs').")
+        error_message = "Invalid CSV header. Expected ('id', 'kg') or ('id', 'lbs')."
+        logging.error(error_message)
+        return jsonify({'error': error_message}), 400
 
     existing_container_ids = {row[0] for row in db.session.query(
         ContainersRegistered.container_id).all()}
@@ -186,6 +183,8 @@ def register_container_csv(file_content):
     db.session.bulk_insert_mappings(ContainersRegistered, [
                                     {"container_id": c_id, "weight": weight, "unit": unit} for c_id, weight, unit in containers_to_add])
     db.session.commit()
+    return jsonify({'success': True})
+
 
 
 def register_container_json(file_content):
@@ -197,10 +196,9 @@ def register_container_json(file_content):
 
     for item in data:
         if not isinstance(item, dict) or 'id' not in item or 'weight' not in item or 'unit' not in item:
-            logging.error(
-                "Invalid JSON format. Each item should have 'id', 'weight', and 'unit' keys.")
-            raise ValueError(
-                "Invalid JSON format. Each item should have 'id', 'weight', and 'unit' keys.")
+            error_message = "Invalid JSON format. Each item should have 'id', 'weight', and 'unit' keys."
+            logging.error(error_message)
+            return jsonify({'error': error_message}), 400
 
         container_id, weight, unit = item['id'], item['weight'], item['unit']
 
@@ -208,8 +206,7 @@ def register_container_json(file_content):
             continue
 
         if container_id in existing_container_ids:
-            logging.info(
-                f"Container with ID {container_id} already exists in the database. Skipping...")
+            logging.info(f"Container with ID {container_id} already exists in the database. Skipping...")
             continue
 
         containers_to_add.add((container_id, float(weight), unit))
@@ -217,6 +214,8 @@ def register_container_json(file_content):
     db.session.bulk_insert_mappings(ContainersRegistered, [
                                     {"container_id": c_id, "weight": weight, "unit": unit} for c_id, weight, unit in containers_to_add])
     db.session.commit()
+    return jsonify({'success': True})
+
 # GET /item/<id>?from=t1&to=t2
 # - id is for an item (truck or container). 404 will be returned if non-existent
 # - t1,t2 - date-time stamps, formatted as yyyymmddhhmmss. server time is assumed.
