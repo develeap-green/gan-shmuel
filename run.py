@@ -13,6 +13,7 @@ load_dotenv()
 FLASK_SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
 REPO_URL = os.environ.get('REPO_URL')
 REPO_NAME = REPO_URL.split('/')[-1].split('.git')[0]
+EMAILS = os.environ.get('EMAILS').split(',')
 
 MAIL_SERVER = os.environ.get('MAIL_SERVER')
 MAIL_PORT = os.environ.get('MAIL_PORT')
@@ -61,8 +62,8 @@ def send_email(subject, html_page, stage):
     try:
         recipients = ' '.join([email.split('@')[0] for email in EMAILS])
         html_body = render_template(html_page, recipients=recipients, stage=stage)
-        msg = Message(subject, recipients=EMAILS, html=html_body)
-        mail.send(msg)
+        # msg = Message(subject, recipients=EMAILS, html=html_body)
+        # mail.send(msg)
         logger.info(f"Email was sent successfully to {recipients}")
     except Exception as e:
         logger.error(f'Error sending email: {e}')
@@ -119,14 +120,20 @@ def monitor():
                 })
 
     weight_status = False
-    response = requests.get(URL_WEIGHT)
-    if response.status_code == 200:
-        weight_status = True
+    try:
+      response = requests.get(URL_WEIGHT)
+      if response.status_code == 200:
+          weight_status = True
+    except:
+        pass
 
     billing_status = False
-    response = requests.get(URL_BILLING)
-    if response.status_code == 200:
-        billing_status = True
+    try:
+      response = requests.get(URL_BILLING)
+      if response.status_code == 200:
+          billing_status = True
+    except:
+        pass
 
     data = {
         'weight_status': billing_status,
@@ -140,26 +147,33 @@ def monitor():
 def rollback():
     try:
 
-        weight_tag = request.form.get('weight_tag')
-        billing_tag = request.form.get('billing_tag')
+        weight_tag = int(request.form.get('weight_tag'))
+        billing_tag = int(request.form.get('billing_tag'))
 
         if not weight_tag and not billing_tag:
             return jsonify({'message': 'Keeping current version.'}), 200
 
 
+
+        # Check compose file to get last versions
+        logger.info("Getting last version from dev compose file.")
+        with open('./docker-compose.pro.yml', 'r') as file:
+            compose_data = yaml.safe_load(file)
+
+        weight = compose_data['services']['weight']['image']
+        weight_default_name = weight.split(':')[0]
+        ver_tag_w = int(weight.split(':')[1])
+
+        billing = compose_data['services']['billing']['image']
+        billing_deafult_name = billing.split(':')[0]
+        ver_tag_b = int(billing.split(':')[1])
+
+
         # Replace production
         logger.info(f"Replacing production")
-        with open('docker-compose.rollback.yml', 'r') as file:
-            compose_pro_data = yaml.safe_load(file)
-
-        if weight_tag:
-            compose_pro_data['services']['weight']['image'] = weight_tag
-        
-        if billing_tag:
-            compose_pro_data['services']['billing']['image'] = billing_tag
-        
-        with open('docker-compose.rollback.yml', 'w') as file:
-            yaml.dump(compose_pro_data, file, sort_keys=False)
+        FILE_COMPOSE_PROD = './docker-compose.pro.yml'
+        change_version_w = subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_default_name}:{weight_tag + 1}/", FILE_COMPOSE_PROD])
+        change_version_b = subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_deafult_name}:{billing_tag + 1}/", FILE_COMPOSE_PROD])
 
 
         replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.rollback.yml", "up", "-d"])
@@ -168,10 +182,6 @@ def rollback():
             send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replacing production')
             return jsonify({'error': 'Replacing production process failed.'}), 500
 
-        # Update git with the new version
-        subprocess.run(["git", "add", "."])
-        subprocess.run(["git", "commit", "-m", f"{COMMIT_MESSAGE}"])
-        subprocess.run(["git", "push", "origin", "main"])
 
         send_email(subject='Rollback succeeded', html_page='success_email.html', stage='')
         return jsonify({'message': 'Rollback initiated successfully.'}), 200
@@ -641,7 +651,7 @@ def trigger():
         
         # Changing compose data to new version
         FILE_COMPOSE_DEV = './docker-compose.dev.yml'
-        change_version_w = subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_default_name}:{ver_tag_w + 1}/", FILE_COMPOSE_DEV])
+        change_version_w = subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_default_name}:{new_ver_weight + 1}/", FILE_COMPOSE_DEV])
 
         
     if billing_changed:
@@ -658,7 +668,7 @@ def trigger():
             return jsonify({'error': f'Build process failed - Billing {billing_tag}.'}), 500
         
         # Changing compose data to new version
-        change_version_b = subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_deafult_name}:{ver_tag_b + 1}/", FILE_COMPOSE_DEV])
+        change_version_b = subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_deafult_name}:{new_ver_billing + 1}/", FILE_COMPOSE_DEV])
 
     # Running testing env
     logger.info(f"Running test environment.")
@@ -687,11 +697,8 @@ def trigger():
 
     # Replace version
     FILE_COMPOSE_PROD = './docker-compose.pro.yml'
-    change_version_w = subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_default_name}:{ver_tag_w + 1}/", FILE_COMPOSE_PROD])
-
-
-    FILE_COMPOSE_PROD = './docker-compose.pro.yml'
-    change_version_b = subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_deafult_name}:{ver_tag_b + 1}/", FILE_COMPOSE_PROD])
+    change_version_w = subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_default_name}:{new_ver_weight + 1}/", FILE_COMPOSE_PROD])
+    change_version_b = subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_deafult_name}:{new_ver_billing + 1}/", FILE_COMPOSE_PROD])
 
     replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])
     if replace_production.returncode != 0:
