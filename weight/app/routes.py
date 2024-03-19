@@ -1,3 +1,5 @@
+import csv
+import json
 import os
 from flask import jsonify, request
 from sqlalchemy import desc
@@ -10,10 +12,6 @@ from app.models import Transactions, ContainersRegistered
 from app.utils import load_weights, detect_file_format, create_directory_if_not_exists, create_file_if_not_exists
 from datetime import datetime
 import random
-
-UPLOAD_DIRECTORY = '/in'
-CSV_FILENAME = 'uploaded_file.csv'
-JSON_FILENAME = 'uploaded_file.json'
 
 
 @app.route('/weight')
@@ -271,7 +269,9 @@ def get_session(id):
 
 
 @app.route('/batch-weight', methods=['POST'])
-def upload_batch_weight():
+def batch_weight():
+    CSV_FILENAME = 'weights.csv'
+    JSON_FILENAME = 'weights.json'
     file_content = request.data
 
     if not file_content:
@@ -282,12 +282,12 @@ def upload_batch_weight():
     file_format = detect_file_format(file_content)
 
     if file_format == 'csv':
-        filepath = os.path.join(UPLOAD_DIRECTORY, CSV_FILENAME)
-        create_directory_if_not_exists(UPLOAD_DIRECTORY)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], CSV_FILENAME)
+        create_directory_if_not_exists(app.config['UPLOAD_FOLDER'])
         create_file_if_not_exists(filepath)
     elif file_format == 'json':
-        filepath = os.path.join(UPLOAD_DIRECTORY, JSON_FILENAME)
-        create_directory_if_not_exists(UPLOAD_DIRECTORY)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], JSON_FILENAME)
+        create_directory_if_not_exists(app.config['UPLOAD_FOLDER'])
         create_file_if_not_exists(filepath)
     else:
         error_message = "Unsupported file format. Please provide a CSV or JSON file."
@@ -304,6 +304,15 @@ def upload_batch_weight():
     except Exception as e:
         logging.error(str(e))
         return {'error': str(e)}, HTTPStatus.BAD_REQUEST
+
+
+def ensure_id_prefix(data):
+    for item in data:
+        id_value = item['id']
+        # Ensure the ID is prefixed with 'C-'
+        if not id_value.startswith('C-'):
+            item['id'] = 'C-' + id_value
+    return data
 
 
 @app.route('/unknown')
