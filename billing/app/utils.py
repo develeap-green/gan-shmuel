@@ -401,10 +401,11 @@ def updateRatesFromFile():
             
             # Commit the changes to the database
             db.session.commit()
-            return "Database updated successfully"
+            return jsonify({"OK": "Database updated successfully", "Status Code:": 200})
 
         else:
-            return "File does not exist"
+            return jsonify({"Error": "File does not exist", "Status Code:": 500})
+        
     except Exception as e:
         # Rollback any changes made to the database session
         db.session.rollback()
