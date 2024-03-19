@@ -59,7 +59,7 @@ def post_transaction():
             f"no data in request body")
         return {"error": "please provide required parameters in the request body"}, HTTPStatus.BAD_REQUEST
 
-    if data['truck'] and not data['truck'].startswith('T-'):
+    if data.get('truck') and not data['truck'].startswith('T-'):
         logging.error(
             f"Attempted registering truck with invalid license prefixed: {data['truck']}")
         return {"error": "truck license must be prefixed"}, HTTPStatus.BAD_REQUEST
@@ -105,12 +105,19 @@ def post_transaction():
                 logging.error(error)
                 return {"error": error}, HTTPStatus.BAD_REQUEST
 
+            container_id = data['containers']
+            weight = int(data['weight'])
+            unit = data['unit']
+
             new_container = ContainersRegistered(
-                container_id=data['containers'], weight=data['weight'], unit=data['unit'])
-            db.seesion.add(new_container)
+                container_id=container_id,
+                weight=weight,
+                unit=unit)
+
+            db.session.add(new_container)
             db.session.commit()
 
-            return new_container, HTTPStatus.CREATED
+            return {"message": "new container has been added"}, HTTPStatus.CREATED
 
         # remove weight of cantainer from data[weight] and add to neto
         session_id = random.randrange(1001, 9999999)
@@ -119,7 +126,7 @@ def post_transaction():
                                   containers=container.container_id,
                                   bruto=data["weight"],
                                   neto=data['weight'] - container.weight,
-                                  produce=data['produce'],
+                                  produce=data.get("produce") or None,
                                   session_id=session_id)
         db.session.add(none_trans)
         db.session.commit()
