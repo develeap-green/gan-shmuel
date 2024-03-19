@@ -156,19 +156,15 @@ def trigger():
                 if file.startswith("billing"):
                     billing_changed = True
 
-    
-        # Clone the repository
-        logger.info("Cloning git repository.")
-
         # Clone the repository
         if not os.path.exists(REPO_NAME):
             logger.info("Cloning git repository.")
-            repo_update = subprocess.run(['git', 'clone', REPO_URL], check=True)
+            repo_update = subprocess.run(['git', 'clone', REPO_URL])
             os.chdir(REPO_NAME)
         else:
             logger.info("Pulling git repository.")
             os.chdir(REPO_NAME)
-            repo_update = subprocess.run(['git', 'pull'], check=True)
+            repo_update = subprocess.run(['git', 'pull'])
 
         if repo_update.returncode != 0:
             logger.error(f"Clone process failed.")
