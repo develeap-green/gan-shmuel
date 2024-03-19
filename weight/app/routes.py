@@ -142,18 +142,16 @@ def post_transaction():
 
         db_containers = db.session.query(ContainersRegistered).filter(
             ContainersRegistered.container_id.in_(containers)).all()
+
         # even if force should be correct to hold the prev session
         session_id = last_row.session_id
-
         truck_tara = int(data['weight'])
         weights = [c.weight for c in db_containers]
 
         if len(weights) > 0 and all(isinstance(w, int) for w in weights) and len(containers) == len(db_containers):
             tara_containers = sum(weights)
-            neto = truck_tara - int(tara_containers)
+            neto = last_row.bruto - truck_tara - int(tara_containers)
         else:
-            logging.error(
-                "one or more containers are un-registered, batch is void!")
             tara_containers = None
             neto = None
 
