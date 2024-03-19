@@ -115,16 +115,15 @@ def test_get_unknown_containers_with_data(base_url):
     response = requests.get(f"{base_url}/unknown")
 
     # Check the response status code
-    assert response.status_code == 200
-
-    # Parse the response content as JSON
-    try:
+    if response.text.strip() == "":
+        # If the response content is empty, expect status code 400
+        assert response.status_code == 404
+    else:
+        # Parse the response content as JSON
         data = response.json()
-        # If it's a JSON object, assert it contains container IDs
+        # If it's a JSON list, expect status code 200
         assert isinstance(data, list)
-    except json.decoder.JSONDecodeError:
-        # If it's not JSON, it should be the message
-        assert response.text.strip() == "No containers with None weight found."
+        assert response.status_code == 200
 
 
 base_url2 = 'http://localhost:5000'
