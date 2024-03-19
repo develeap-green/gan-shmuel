@@ -159,7 +159,7 @@ def trigger():
         # Clone the repository
         if not os.path.exists(REPO_NAME):
             logger.info("Cloning git repository.")
-            repo_update = subprocess.run(['git', 'clone', REPO_URL])
+            repo_update = subprocess.run(['git', 'clone', REPO_URL], check=True, env={'GIT_SSH_COMMAND': 'ssh -o StrictHostKeyChecking=no'})
             os.chdir(REPO_NAME)
         else:
             logger.info("Pulling git repository.")
