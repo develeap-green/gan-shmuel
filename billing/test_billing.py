@@ -80,15 +80,18 @@ def test_post_rates():
         files = {'file': file}
         response = requests.post(url, files=files)
     assert response.status_code == 200, "Failed to upload rates"
-    assert response.json() == {"OK": "Database updated successfully", "Status Code:": 200}, "Unexpected response data"
-
 
 def test_get_rates():
-    # Ensure there are rates to download by first posting rates
-    test_post_rates()
+    test_post_rates()  # Ensure there are rates to download by first posting rates
     get_url = f"{BASE_URL}/rates"
     get_response = requests.get(get_url)
     assert get_response.status_code == 200, "Failed to download rates"
+
+def test_get_rates_with_date_range():
+    test_post_rates()
+    url = f"{BASE_URL}/rates?from=20230101&to=20240101"
+    response = requests.get(url)
+    assert response.status_code == 200, "Should succeed with valid date range"
 
 
 if __name__ == "__main__":

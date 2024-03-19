@@ -42,7 +42,6 @@ def showTablesContents():
             tables_contents[table_name] = get_table_contents(table)
         return jsonify(tables_contents)
 
-    
 
 # For bill route
 def processWeightSessions(weightSessions, rates):
@@ -50,20 +49,16 @@ def processWeightSessions(weightSessions, rates):
     # Initialize bill details with empty products dictionary and total bill as 0
     billDetails = {"products": {}, "total": 0}
     unique_trucks = set()  # Initialize a set to count unique trucks
-
     # Iterate over each weight session
     for session in weightSessions:
         produce = session['produce']  # Get the product from the session
         neto = session['neto']  # Get the neto weight from the session
         truck = session['truck']  # Get the truck ID from the session
         # Ensure this rate lookup aligns with how rates are keyed in the dictionary.
-        rate = rates.get(produce, 0)  # Get the rate for the product from the rates dictionary
-
+        rate = rates[produce]  # Get the rate for the product from the rates dictionary
         # Debugging print to check rate applied for each product
         print(f"{produce}: Rate applied - {rate}, Neto - {neto}")
-
         unique_trucks.add(truck)  # Add truck to the set of unique trucks
-
         # If product not in billDetails, add it with initial count, amount, rate, and pay
         if produce not in billDetails['products']:
             billDetails['products'][produce] = {
@@ -78,28 +73,19 @@ def processWeightSessions(weightSessions, rates):
             productDetails['count'] += 1
             productDetails['amount'] += neto
             productDetails['pay'] = productDetails['amount'] * rate  # Recalculate pay based on updated amount
-
     # After updating product details, calculate the total pay by summing pay for all products
     billDetails['total'] = sum(product['pay'] for product in billDetails['products'].values())
-
     # Update the count of unique trucks in billDetails
     billDetails['truck_count'] = len(unique_trucks)
-
     return billDetails
-
-
-
-
 # def fetch_weight_sessions(from_date, to_date, provider_id):
 #     # Get the weight server URL from environment variables
 #     weight_server_url = os.getenv('WEIGHT_SERVER_URL')
 #     if not weight_server_url:
 #         # Raise an error if the WEIGHT_SERVER_URL environment variable is not set
 #         raise ValueError("The WEIGHT_SERVER_URL environment variable must be set.")
-    
 #     # Construct the URL with query parameters
 #     url = f"{weight_server_url}/weight?from={from_date}&to={to_date}&filter=in,out,none"
-    
 #     try:
 #         # Send a GET request to the constructed URL
 #         response = requests.get(url)
@@ -109,110 +95,72 @@ def processWeightSessions(weightSessions, rates):
 #         # Handle any request exceptions, such as network errors
 #         print(f"Error fetching weight sessions data: {e}")
 #         return None
-
-
-
-
-
-# Mock function to simulate fetching weight sessions from a database
+# # Mock function to simulate fetching weight sessions from a database
 def fetchWeightSessions(from_date, to_date, provider_id):
     #  sample data resembling database records
     sample_data = [
-        {"datetime": "2024-03-11 12:38:38", "direction": "out", "truck": "T-18186", "produce": "Mangoes", "neto": 700, "session_id": 7781},
-        {"datetime": "2024-03-15 17:07:42", "direction": "in", "truck": "T-15083", "produce": "Apples", "neto": 847, "session_id": 8119},
-        {"datetime": "2024-03-10 23:13:05", "direction": "out", "truck": "T-54612", "produce": "Oranges", "neto": 792, "session_id": 8621},
-        {"datetime": "2024-03-08 10:24:55", "direction": "in", "truck": "T-17464", "produce": "Bananas", "neto": 1507, "session_id": 4943}
+        {"datetime": "2024-03-11 12:38:38", "direction": "out", "truck": "T-18186", "produce": "Navel", "neto": 700, "session_id": 7781},
+        {"datetime": "2024-03-15 17:07:42", "direction": "in", "truck": "T-15083", "produce": "Blood", "neto": 847, "session_id": 8119},
+        {"datetime": "2024-03-10 23:13:05", "direction": "out", "truck": "T-54612", "produce": "Grapefruit", "neto": 792, "session_id": 8621},
+        {"datetime": "2024-03-08 10:24:55", "direction": "in", "truck": "T-17464", "produce": "Valencia", "neto": 1507, "session_id": 4943}
     ]
-    
     # Remove newline character and parse dates
     from_date_cleaned = from_date.strip()  # Remove  whitespace and newline characters
     to_date_cleaned = to_date.strip()  # Remove  whitespace and newline characters
-
     # Convert from_date and to_date strings to datetime objects
     from_date_obj = datetime.strptime(from_date_cleaned, '%Y%m%d%H%M%S')
     to_date_obj = datetime.strptime(to_date_cleaned, '%Y%m%d%H%M%S')
-    
     # Filter the sample data based on the provided date range and provider_id (if applicable)
     filtered_data = [record for record in sample_data if from_date_obj <= datetime.strptime(record["datetime"], '%Y-%m-%d %H:%M:%S') <= to_date_obj]
-
     return filtered_data
-
 # Function to fetch rates from a CSV file and return them as a dictionary
-def get_rates_dict(provider_id):
+def getRatesDict(providerID):
     try:
-        rates_dict = {}
-        df = pd.read_csv('in/rates.csv')
-
-        
-        # Add the database all rates from the file
-        for _, row in df.iterrows():
-            product_id = row['product_id'] 
-            rate = row['rate']
-            scope = row['scope']               
-            # Check if the scope matches 'All' or the provider_id
-            if scope == 'All' or scope == str(provider_id):
-                # Add the product_id and rate to the rates_dict
-                rates_dict[product_id] = float(rate)
+        ratesDict = {}
+        # Query the DB for all rates
+        allRatesList = Rates.query.all()
+        # Filter the relevant products by provider
+        for record in allRatesList:
+            product_id = record.product_id
+            rate = record.rate
+            scope = record.scope
+            # Check if the scope matches 'All' or the specific provider_id
+            if scope == 'All' or scope == str(providerID):
+                # Add the product_id and rate to the ratesDict
+                ratesDict[product_id] = float(rate)
         # Print a message if no rates are found in the CSV file
-        if not rates_dict:
+        if not ratesDict:
             print("No rates found. Check CSV file content or query.")
         else:
             # Print the fetched rates if rates are found
-            print("Fetched rates:", rates_dict)
-        return rates_dict
+            print("Fetched rates:", ratesDict)
+        return ratesDict
     except Exception as e:
         # Print an exception message if there's an error fetching rates
         print(f"Exception fetching rates: {e}")
         return {}
-
-
-
 def getTheBill(providerId):
     # Get the 'from' and 'to' date parameters from the request, defaulting to the current date and time if not provided
     fromDate = request.args.get('from', datetime.now().strftime('%Y%m01000000'))
     toDate = request.args.get('to', datetime.now().strftime('%Y%m%d%H%M%S'))
-    
     # Fetch weight sessions data based on the provided date range and providerId
+    providers = Trucks.query.filter_by(provider_id=providerId).all()
+    provider_ids = [provider.provider_id for provider in providers]
+    if providerId not in provider_ids:
+        return jsonify({'error': 'no trucks for this provider'}), 400
     weight_sessions = fetchWeightSessions(fromDate, toDate, providerId)
-
     # If weight_sessions is None (indicating a failure to fetch), return an error response
     if weight_sessions is None:
         return jsonify({'error': 'Failed to fetch weight sessions'}), 500
-
     # Fetch rates for the providerId
-    rates_dict = get_rates_dict(providerId)
-    
+    rates_dict = getRatesDict(providerId)
     # If rates_dict is empty (indicating a failure to fetch rates), return an error response
     if not rates_dict:
         return jsonify({'error': 'Failed to fetch rates'}), 500
-
     # Process weight sessions and rates to calculate bill details
     billDetails = processWeightSessions(weight_sessions, rates_dict)
-    
     # Return the calculated bill details as a JSON response
     return jsonify(billDetails)
-    
-
-
-
-
-
-def calculateTruckCount(weight_sessions):
-    # Extract the unique trucks from the weight sessions using a set comprehension
-    unique_trucks = set(session['truck'] for session in weight_sessions)
-    # Return the count of unique trucks
-    return len(unique_trucks)
-
-
-def formatProductInfo(product, details):
-    # Format the product information into a dictionary with specific keys
-    return {
-        "product": product,  # Name of the product
-        "count": details['count'],  # Number of occurrences of the product
-        "amount": details['amount'],  # Total amount of the product
-        "rate": details['rate'],  # Rate of the product
-        "pay": details['pay']  # Total pay for the product
-    }
 
 ########
 # For provider route
