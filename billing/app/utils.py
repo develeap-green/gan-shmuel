@@ -1,6 +1,6 @@
 from app import app, db, DB_URI
 from app.models import Provider, Rates, Trucks
-from flask import abort, request, jsonify
+from flask import abort, request, jsonify, make_response
 from sqlalchemy import create_engine 
 from datetime import datetime
 import flask_excel as excel
@@ -404,6 +404,7 @@ def getTheTruck(id):
 # For rates route
 def updateRatesFromFile():
     in_directory = os.path.abspath('in')
+#    in_directory = 'in'
     file_path = os.path.join(in_directory, 'rates.csv')
     try:
         # Check if the file exists
@@ -422,10 +423,11 @@ def updateRatesFromFile():
             
             # Commit the changes to the database
             db.session.commit()
-            return "Database updated successfully"
+            return jsonify({"OK": "Database updated successfully", "Status Code:": 200})
 
         else:
-            return "File does not exist"
+            return jsonify({"Error": "File does not exist", "Status Code:": 500})
+        
     except Exception as e:
         # Rollback any changes made to the database session
         db.session.rollback()
@@ -447,7 +449,7 @@ def downloadRates():
         # Convert DF to CSV, do not include DF column in the output
         response = df.to_csv(index=False)
         # Create a Flask response object and set the correct content type for CSV
-        flaskResponse = pd.make_response(response)
+        flaskResponse = make_response(response)
         cd = 'attachment; filename=rates.csv'
         flaskResponse.headers['Content-Disposition'] = cd
         flaskResponse.mimetype='text/csv'
