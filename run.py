@@ -615,7 +615,7 @@ def trigger():
 
     # Clone the repository
     logger.info("Pulling git repository.")
-    repo_update = subprocess.run(['git', 'pull'])
+    repo_update = subprocess.run(['git', 'pull', '--force'])
 
     if repo_update.returncode != 0:
         logger.error(f"Pull repo process failed.")
