@@ -1,4 +1,3 @@
-# First stage: Build stage
 FROM python:3.10 AS builder
 
 WORKDIR /app
