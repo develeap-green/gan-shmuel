@@ -110,5 +110,6 @@ def test_get_rates_with_date_range():
     assert response.status_code == 200, "Should succeed with valid date range"
 
 
+
 if __name__ == "__main__":
     setup_module(None)
