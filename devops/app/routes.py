@@ -10,6 +10,56 @@ COMMIT_MESSAGE = 'CI-commit'
 URL_WEIGHT = 'http://greenteam.hopto.org:8081/health'
 URL_BILLING = 'http://greenteam.hopto.org:8082/health'
 
+
+
+
+# Check compose file to get last versions
+logger.info("Getting last version from dev compose file.")
+with open('./docker-compose.pro.yml', 'r') as file:
+    compose_data = yaml.safe_load(file)
+
+weight = compose_data['services']['weight']['image']
+weight_default_name = weight.split(':')[0]
+version_weight = int(weight.split(':')[1])
+
+billing = compose_data['services']['billing']['image']
+billing_deafult_name = billing.split(':')[0]
+version_billing = int(billing.split(':')[1])
+
+logger.info(f"Starting a build process for weight.")
+
+# Incresing version 
+weight_tag = f"{weight_default_name}:{version_weight + 1}"
+
+# Building new image
+weight_build = subprocess.run(["docker", "build", "-t", weight_tag, './weight'])
+
+# Changing compose data to new version
+compose_data['services']['weight']['image'] = weight_tag
+
+
+logger.info(f"Starting a build process for billing.")
+
+# Incresing version 
+billing_tag = f"{billing_deafult_name}:{version_billing + 1}"
+
+# Building new image
+billing_build = subprocess.run(["docker", "build", "-t", billing_tag, './billing'])
+
+# Changing compose data to new version
+compose_data['services']['billing']['image'] = billing_tag
+
+# Updating docker compose file with the new versions
+with open('./docker-compose.pro.yml', 'w') as file:
+    yaml.dump(compose_data, file)
+
+run_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])
+
+
+
+
+
+
 @app.route('/', methods=['GET'])
 def index():
     return jsonify({'status': 'success', 'message': 'Ok'}), 200
@@ -159,6 +209,37 @@ def trigger():
         if not weight_changed and not billing_changed:
              return jsonify({'status': 'success', 'message': 'Skipped CI push.'}), 200
 
+
+        # Run the 'docker images' command to get last version
+        process = subprocess.Popen(['docker', 'images'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = process.communicate()
+
+        if process.returncode != 0:
+            return jsonify({'error': error.decode()}), 500
+
+        lines = output.decode().split('\n')[1:]
+        images_weight = []
+        images_billing = []
+        for line in lines:
+            if line:
+                parts = line.split()
+                if parts[0] == 'weight-image':
+                    try:
+                        tag = int(parts[1])
+                    except:
+                        tag = 1
+                    images_weight.append(tag)
+
+                if parts[0] == 'billing-image':
+                    try:
+                        tag = int(parts[1])
+                    except:
+                        tag = 1
+                    images_billing.append(tag)
+
+        new_tag_weight = max(images_weight) if images_weight else 1
+        new_tag_billing = max(images_billing) if images_billing else 1
+
         # Clone the repository
         if not os.path.exists(REPO_NAME):
             logger.info("Cloning git repository.")
@@ -180,11 +261,9 @@ def trigger():
             compose_data = yaml.safe_load(file)
 
         weight = compose_data['services']['weight']['image']
-        weight_version = int(weight.split(':')[-1])
         weight_default_name = weight.split(':')[0]
 
         billing = compose_data['services']['billing']['image']
-        billing_version = int(billing.split(':')[-1])
         billing_deafult_name = billing.split(':')[0]
 
         # Build images
@@ -192,7 +271,7 @@ def trigger():
             logger.info(f"Starting a build process for weight.")
 
              # Incresing version 
-            weight_tag = f"{weight_default_name}:{weight_version+1}"
+            weight_tag = f"{weight_default_name}:{new_tag_weight}"
 
             # Building new image
             weight_build = subprocess.run(["docker", "build", "-t", weight_tag, './weight'])
@@ -209,7 +288,7 @@ def trigger():
             logger.info(f"Starting a build process for billing.")
 
             # Incresing version 
-            billing_tag = f"{billing_deafult_name}:{billing_version+1}"
+            billing_tag = f"{billing_deafult_name}:{new_tag_billing}"
 
             # Building new image
             billing_build = subprocess.run(["docker", "build", "-t", billing_tag, './billing'])
@@ -277,10 +356,6 @@ def trigger():
             send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replacing production')
             return jsonify({'error': 'Replacing production process failed.'}), 500
 
-        # Update git with the new version
-        subprocess.run(["git", "add", "."])
-        subprocess.run(["git", "commit", "-m", f"{COMMIT_MESSAGE}"])
-        subprocess.run(["git", "push", "origin", "main"])
 
         send_email(subject='Deploy succeeded', html_page='success_email.html', stage='')
         return jsonify({'status': 'success', 'message': 'Deployment successful'}), 200
