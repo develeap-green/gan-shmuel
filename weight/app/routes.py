@@ -1,5 +1,5 @@
 import os
-from flask import jsonify, request
+from flask import jsonify, render_template, request
 from sqlalchemy import desc
 from app import app, db
 from sqlalchemy.sql import text
@@ -14,6 +14,18 @@ import random
 UPLOAD_DIRECTORY = '/in'
 CSV_FILENAME = 'uploaded_file.csv'
 JSON_FILENAME = 'uploaded_file.json'
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
+@app.route('/transactions')
+def get_transactions():
+    res = db.session.query(Transactions).all()
+    res = [r.to_dict() for r in res]
+    return res, 200
 
 
 @app.route('/weight')
