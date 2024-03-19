@@ -1,12 +1,10 @@
 from app import app, db, DB_URI
 from app.models import Provider, Rates, Trucks
-from flask import abort, request, jsonify
+from flask import abort, request, jsonify, make_response
 from sqlalchemy import create_engine 
 from datetime import datetime
-import flask_excel as excel
 import requests
 import json
-import pymysql
 import logging
 import os
 import pandas as pd
@@ -20,25 +18,6 @@ from sqlalchemy import MetaData
 
 # Configure logger
 # logger = logging.getLogger(__name__)
-
-
-# Utility function for the health-check route.
-def checkDBHealth():
-    try:
-        with pymysql.connect(
-            host='mysql-billing',
-            user='user',
-            password='pass',
-            database='billing',
-            port=3306,
-            connect_timeout=5
-        ) as connection:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT 1")
-            return {"status": "OK"}
-    except pymysql.MySQLError as e:
-        # logger.error(f"Database health check failed: {e}")
-        return {"status": "Failure", "reason": str(e)}
 
 
 # Utility function for the tables route - testing only
@@ -447,10 +426,10 @@ def downloadRates():
         # Convert DF to CSV, do not include DF column in the output
         response = df.to_csv(index=False)
         # Create a Flask response object and set the correct content type for CSV
-        flaskResponse = pd.make_response(response)
+        flaskResponse = make_response(response)
         cd = 'attachment; filename=rates.csv'
         flaskResponse.headers['Content-Disposition'] = cd
-        flaskResponse.mimetype='text/csv'
+        flaskResponse.mimetype = 'text/csv'
         return flaskResponse
     except Exception as e:
         # Log the exception and return an error response
