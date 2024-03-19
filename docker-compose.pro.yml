@@ -1,85 +1,88 @@
 version: '3'
+include:
+  - ./weight/compose.yaml
+  - ./billing/docker-compose.yml
 services:
 
-  # Weight
-  weight:
-    image: weight-image:0
-    ports:
-      - "8081:5000"
-    env_file:
-      - ./weight.env
-    restart: always
-    networks:
-      - weight-network
-    depends_on:
-      mysql-weight:
-        condition: service_healthy
+  # # Weight
+  # weight:
+  #   image: weight-image:0
+  #   ports:
+  #     - "8081:5000"
+  #   env_file:
+  #     - ./weight.env
+  #   restart: always
+  #   networks:
+  #     - weight-network
+  #   depends_on:
+  #     mysql-weight:
+  #       condition: service_healthy
 
-  mysql-weight:
-    image: mysql:8.3
-    environment:
-      - MYSQL_RANDOM_ROOT_PASSWORD=yes
-      - MYSQL_DATABASE=weight
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-    env_file:
-      - ./weight.env
-    restart: always
-    networks:
-      - weight-network
-    volumes:
-      - weight_db_data:/var/lib/mysql
-      - ./weight/db:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 30s 
-      retries: 20 
-
-
-  # Billing
-  billing:
-    image: billing-image:0
-    hostname: mysql-billing
-    ports:
-      - "8082:5000"
-    env_file:
-      - ./billing.env
-    restart: always
-    networks:
-      - billing-network
-    volumes:
-      - ./billing/logs:/app/logs
-      - ./billing/in:/app/in
-    depends_on:
-      mysql-billing:
-        condition: service_healthy
-
-  mysql-billing:
-    image: mysql:8.3
-    env_file:
-      - ./billing.env
-    environment:
-      MYSQL_DATABASE: 'billing'
-      MYSQL_USER: 'user'
-      MYSQL_PASSWORD: 'pass'
-      MYSQL_ROOT_PASSWORD: 'pass'
-    restart: always
-    networks:
-      - billing-network
-    volumes:
-      - ./billing/db:/docker-entrypoint-initdb.d
-      - db-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 30s 
-      retries: 20 
+  # mysql-weight:
+  #   image: mysql:8.3
+  #   environment:
+  #     - MYSQL_RANDOM_ROOT_PASSWORD=yes
+  #     - MYSQL_DATABASE=weight
+  #     - MYSQL_USER=${MYSQL_USER}
+  #     - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+  #   env_file:
+  #     - ./weight.env
+  #   restart: always
+  #   networks:
+  #     - weight-network
+  #   volumes:
+  #     - weight_db_data:/var/lib/mysql
+  #     - ./weight/db:/docker-entrypoint-initdb.d
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+  #     timeout: 30s 
+  #     retries: 20 
 
 
-volumes:
-  weight_db_data:
-  db-data:
-  logs:
+  # # Billing
+  # billing:
+  #   image: billing-image:0
+  #   hostname: mysql-billing
+  #   ports:
+  #     - "8082:5000"
+  #   env_file:
+  #     - ./billing.env
+  #   restart: always
+  #   networks:
+  #     - billing-network
+  #   volumes:
+  #     - ./billing/logs:/app/logs
+  #     - ./billing/in:/app/in
+  #   depends_on:
+  #     mysql-billing:
+  #       condition: service_healthy
 
-networks:
-  billing-network:
-  weight-network:
+  # mysql-billing:
+  #   image: mysql:8.3
+  #   env_file:
+  #     - ./billing.env
+  #   environment:
+  #     MYSQL_DATABASE: 'billing'
+  #     MYSQL_USER: 'user'
+  #     MYSQL_PASSWORD: 'pass'
+  #     MYSQL_ROOT_PASSWORD: 'pass'
+  #   restart: always
+  #   networks:
+  #     - billing-network
+  #   volumes:
+  #     - ./billing/db:/docker-entrypoint-initdb.d
+  #     - db-data:/var/lib/mysql
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+  #     timeout: 30s 
+  #     retries: 20 
+
+
+# volumes:
+#   weight_db_data:
+#   db-data:
+#   logs:
+
+# networks:
+#   billing-network:
+#   weight-network:
