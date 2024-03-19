@@ -1,3 +1,4 @@
+import os
 from flask import jsonify, request
 from sqlalchemy import desc
 from app import app, db
@@ -6,9 +7,13 @@ import logging
 from http import HTTPStatus
 from datetime import datetime
 from app.models import Transactions, ContainersRegistered
-from app.utils import load_weights
+from app.utils import load_weights, detect_file_format, create_directory_if_not_exists, create_file_if_not_exists
 from datetime import datetime
 import random
+
+UPLOAD_DIRECTORY = '/in'
+CSV_FILENAME = 'uploaded_file.csv'
+JSON_FILENAME = 'uploaded_file.json'
 
 
 @app.route('/weight')
@@ -261,16 +266,35 @@ def get_session(id):
 
 @app.route('/batch-weight', methods=['POST'])
 def upload_batch_weight():
-
     file_content = request.data
 
     if not file_content:
         logging.error('No file data found in request body')
         return {'error': 'No file data found in request body'}, HTTPStatus.BAD_REQUEST
 
-    try:
-        return load_weights(file_content)
+    # Determine file format
+    file_format = detect_file_format(file_content)
 
+    if file_format == 'csv':
+        filepath = os.path.join(UPLOAD_DIRECTORY, CSV_FILENAME)
+        create_directory_if_not_exists(UPLOAD_DIRECTORY)
+        create_file_if_not_exists(filepath)
+    elif file_format == 'json':
+        filepath = os.path.join(UPLOAD_DIRECTORY, JSON_FILENAME)
+        create_directory_if_not_exists(UPLOAD_DIRECTORY)
+        create_file_if_not_exists(filepath)
+    else:
+        error_message = "Unsupported file format. Please provide a CSV or JSON file."
+        logging.error(error_message)
+        return {'error': error_message}, HTTPStatus.BAD_REQUEST
+    try:
+        with open(filepath, 'wb') as f:
+            f.write(file_content)
+    except Exception as e:
+        return jsonify({'error': f'Failed to save file: {str(e)}'}), 500
+
+    try:
+        return load_weights(filepath, file_format)
     except Exception as e:
         logging.error(str(e))
         return {'error': str(e)}, HTTPStatus.BAD_REQUEST
