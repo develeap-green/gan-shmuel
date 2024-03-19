@@ -156,6 +156,9 @@ def trigger():
                 if file.startswith("billing"):
                     billing_changed = True
 
+        if not weight_changed and not billing_changed:
+             return jsonify({'status': 'success', 'message': 'Skipped CI push.'}), 200
+
         # Clone the repository
         if not os.path.exists(REPO_NAME):
             logger.info("Cloning git repository.")
