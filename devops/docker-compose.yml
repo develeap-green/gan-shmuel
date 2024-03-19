@@ -31,8 +31,6 @@ services:
       - api
 
   
-
-
 networks:
   devops-network:
 
