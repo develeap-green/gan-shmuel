@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Gan-Shmuel</title>
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://lh3.googleusercontent.com/drive-viewer/AEYmBYT1Zq8BQiyV-OMbQ9EUMgtUBGatMyV1P6SxMRI7q4XWUaFcHPOupfXAEyin159cZRUGmOuzswnsJPVxUcI4yZBwzNCk4Q=s2560"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="static/styles.css" />
+  </head>
+  <body>
+    <div>
+      <h1 class="text-center title">Health Monitor</h1>
+      <div class="box">
+        <h2 class="text-center">Billing Container</h2>
+        {% if data.billing_status %}
+            <p>Status: online</p>
+            <img src="https://lh3.googleusercontent.com/drive-viewer/AKGpiha66I-yLO2nlJ-UrQUvfT73UTcfl7t8-9Bm2nvEUj_n0UC1gl7NuE0uyDxIYRc8oEfcgZGgNyKxZOjQriAqw0C65jNg=s2560" alt="online" width="30" height="30"> 
+        {% else %}
+            <p>Status: offline</p>
+            <img src="https://lh3.googleusercontent.com/drive-viewer/AKGpihbtsneKUP0Gsra3jm7VAKzy-imsHyEZ4f3MQj3xXvtLdLjyolgg0sMM58YhJ4QXYozl8Bqina05MeOlTghwp7fzqY1jWQ=s2560" alt="offline" width="30" height="30">
+        {% endif %}
+      </div>
+      <div class="box">
+        <h2 class="text-center">Weight Container</h2>
+        {% if data.weight_status %}
+            <p>Status: online</p>
+            <img src="https://lh3.googleusercontent.com/drive-viewer/AKGpiha66I-yLO2nlJ-UrQUvfT73UTcfl7t8-9Bm2nvEUj_n0UC1gl7NuE0uyDxIYRc8oEfcgZGgNyKxZOjQriAqw0C65jNg=s2560" alt="online" width="30" height="30"> 
+        {% else %}
+            <p>Status: offline</p>
+            <img src="https://lh3.googleusercontent.com/drive-viewer/AKGpihbtsneKUP0Gsra3jm7VAKzy-imsHyEZ4f3MQj3xXvtLdLjyolgg0sMM58YhJ4QXYozl8Bqina05MeOlTghwp7fzqY1jWQ=s2560" alt="offline" width="30" height="30">
+        {% endif %}
+      </div>
+
+      <div class="box">
+        <h2 class="text-center">Rollback</h2>
+        <h6>Weight</h6>
+        <table border="1">
+            <tr>
+                <th>Repository</th>
+                <th>Tag</th>
+                <th>Image ID</th>
+                <th>Created</th>
+            </tr>
+            {% for image in images_billing %}
+            <tr>
+                <td>{{ image.repository }}</td>
+                <td>{{ image.tag }}</td>
+                <td>{{ image.image_id }}</td>
+                <td>{{ image.created }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        <br>
+        <h6>Billing</h6>
+        <table border="1">
+            <tr>
+                <th>Repository</th>
+                <th>Tag</th>
+                <th>Image ID</th>
+                <th>Created</th>
+            </tr>
+            {% for image in images_billing %}
+            <tr>
+                <td>{{ image.repository }}</td>
+                <td>{{ image.tag }}</td>
+                <td>{{ image.image_id }}</td>
+                <td>{{ image.created }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <form class="roll" action="/api/v1/rollback" method="post">
+            <div>
+                <h6>Weight</h6>
+                <select name="weight_tag">
+                    {% for image in images_weight %}
+                    <option value=""></option>
+                    <option value="{{ image.repository }}:{{ image.tag }}">{{ image.tag }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <br>
+            <div>
+                <h6>Billing</h6>
+                <select name="billing_tag">
+                    {% for image in images_billing %}
+                    <option value=""></option>
+                    <option value="{{ image.repository }}:{{ image.tag }}">{{ image.tag }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <br>
+            <button type="submit">Rollback</button>
+        </form>
+
+      </div>
+
+  </body>
+</html>

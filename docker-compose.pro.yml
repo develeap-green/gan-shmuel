@@ -8,8 +8,6 @@ services:
     env_file:
       - ./devops/weight.env
     restart: always
-    # ports:
-    #   - "8081:5000"
     networks:
       - weight-network
       - nginx-network
@@ -40,8 +38,6 @@ services:
     env_file:
       - ./devops/billing.env
     restart: always
-    # ports:
-    #   - "8082:5000"
     networks:
       - billing-network
       - nginx-network
