@@ -82,8 +82,7 @@ def rollback():
 
         # Replace production
         logger.info(f"Replacing production")
-
-        with open('docker-compose.pro.yml', 'r') as file:
+        with open('docker-compose.rollback.yml', 'r') as file:
             compose_pro_data = yaml.safe_load(file)
 
         if weight_tag:
@@ -92,11 +91,11 @@ def rollback():
         if billing_tag:
             compose_pro_data['services']['billing']['image'] = billing_tag
         
-        with open('docker-compose.pro.yml', 'w') as file:
+        with open('docker-compose.rollback.yml', 'w') as file:
             yaml.dump(compose_pro_data, file, sort_keys=False)
 
 
-        replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])
+        replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.rollback.yml", "up", "-d"])
         if replace_production.returncode != 0:
             logger.error(f"Replacing production process failed.")
             send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replacing production')

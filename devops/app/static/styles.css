@@ -42,3 +42,7 @@ form.roll {
     margin: 40px;
     gap: 20px;
 }
+
+select {
+    min-width: 110px;
+}

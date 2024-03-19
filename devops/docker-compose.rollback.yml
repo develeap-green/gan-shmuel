@@ -1,0 +1,71 @@
+version: '3'
+services:
+
+  # Weight
+  weight:
+    image: weight-image:1
+    hostname: weight
+    env_file:
+      - ./devops/weight.env
+    restart: always
+    networks:
+      - weight-network
+      - nginx-network
+    depends_on:
+      mysql-weight:
+        condition: service_healthy
+
+  mysql-weight:
+    image: mysql:8.3
+    env_file:
+      - ./devops/weight.env
+    restart: always
+    networks:
+      - weight-network
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+      - weight_database:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 30s 
+      retries: 20 
+
+
+  # Billing
+  billing:
+    image: billing-image:1
+    hostname: billing
+    env_file:
+      - ./devops/billing.env
+    restart: always
+    networks:
+      - billing-network
+      - nginx-network
+    depends_on:
+      mysql-billing:
+        condition: service_healthy
+
+  mysql-billing:
+    image: mysql:8.3
+    env_file:
+      - ./devops/billing.env
+    restart: always
+    networks:
+      - billing-network
+    volumes:
+      - ./db-init:/docker-entrypoint-initdb.d
+      - billing_database:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 30s 
+      retries: 20 
+
+
+volumes:
+  weight_database:
+  billing_database:
+
+networks:
+  billing-network:
+  weight-network:
+  nginx-network:
