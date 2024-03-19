@@ -9,7 +9,7 @@ services:
     ports:
       - "8080:5000"
     env_file:
-      - ./.envg
+      - ./.env
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
