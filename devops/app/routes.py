@@ -15,7 +15,7 @@ URL_BILLING = 'http://greenteam.hopto.org:8082/health'
 
 # Check compose file to get last versions
 logger.info("Getting last version from dev compose file.")
-with open('./docker-compose.pro.yml', 'r') as file:
+with open('./../../docker-compose.pro.yml', 'r') as file:
     compose_data = yaml.safe_load(file)
 
 weight = compose_data['services']['weight']['image']
@@ -32,7 +32,7 @@ logger.info(f"Starting a build process for weight.")
 weight_tag = f"{weight_default_name}:{version_weight + 1}"
 
 # Building new image
-weight_build = subprocess.run(["docker", "build", "-t", weight_tag, './weight'])
+weight_build = subprocess.run(["docker", "build", "-t", weight_tag, './../../weight'])
 
 # Changing compose data to new version
 compose_data['services']['weight']['image'] = weight_tag
@@ -44,7 +44,7 @@ logger.info(f"Starting a build process for billing.")
 billing_tag = f"{billing_deafult_name}:{version_billing + 1}"
 
 # Building new image
-billing_build = subprocess.run(["docker", "build", "-t", billing_tag, './billing'])
+billing_build = subprocess.run(["docker", "build", "-t", billing_tag, './../../billing'])
 
 # Changing compose data to new version
 compose_data['services']['billing']['image'] = billing_tag
@@ -53,7 +53,7 @@ compose_data['services']['billing']['image'] = billing_tag
 with open('./docker-compose.pro.yml', 'w') as file:
     yaml.dump(compose_data, file)
 
-run_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])
+run_production = subprocess.run(["docker", "compose", "-f", "./../../docker-compose.pro.yml", "up", "-d"])
 
 
 
