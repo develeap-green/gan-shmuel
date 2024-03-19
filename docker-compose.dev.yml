@@ -37,6 +37,9 @@ services:
     restart: always
     networks:
       - test-network
+    volumes:
+      - ./billing/logs:/app/logs
+      - ./billing/in:/app/in
     depends_on:
       mysql-billing:
         condition: service_healthy

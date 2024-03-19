@@ -4,7 +4,6 @@ services:
   # Weight
   weight:
     image: weight-image:0
-    hostname: weight
     ports:
       - "8081:5000"
     env_file:
@@ -18,14 +17,19 @@ services:
 
   mysql-weight:
     image: mysql:8.3
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=yes
+      - MYSQL_DATABASE=weight
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     env_file:
       - ./weight.env
     restart: always
     networks:
       - weight-network
     volumes:
-      - ./weight/db:/docker-entrypoint-initdb.d
       - weight_db_data:/var/lib/mysql
+      - ./weight/db:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 30s 
@@ -35,7 +39,7 @@ services:
   # Billing
   billing:
     image: billing-image:0
-    hostname: billing
+    hostname: mysql-billing
     ports:
       - "8082:5000"
     env_file:
@@ -45,7 +49,7 @@ services:
       - billing-network
     volumes:
       - ./billing/logs:/app/logs
-      - ./in:/app/in
+      - ./billing/in:/app/in
     depends_on:
       mysql-billing:
         condition: service_healthy
@@ -54,6 +58,11 @@ services:
     image: mysql:8.3
     env_file:
       - ./billing.env
+    environment:
+      MYSQL_DATABASE: 'billing'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'pass'
+      MYSQL_ROOT_PASSWORD: 'pass'
     restart: always
     networks:
       - billing-network
