@@ -615,6 +615,7 @@ def trigger():
 
     # Clone the repository
     logger.info("Pulling git repository.")
+    git_rest = subprocess.run(['git', 'reset', '--hard', 'HEAD'])
     repo_update = subprocess.run(['git', 'pull', '--force'])
 
     if repo_update.returncode != 0:
