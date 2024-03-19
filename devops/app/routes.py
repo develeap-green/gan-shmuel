@@ -12,59 +12,6 @@ URL_WEIGHT = 'http://greenteam.hopto.org:8081/health'
 URL_BILLING = 'http://greenteam.hopto.org:8082/health'
 
 
-
-# # Check compose file to get last versions
-# logger.info("Getting last version from dev compose file.")
-# with open('/home/ubuntu/project/gan-shmuel/docker-compose.pro.yml', 'r') as file:
-#     compose_data = yaml.safe_load(file)
-
-# weight = compose_data['services']['weight']['image']
-# weight_default_name = weight.split(':')[0]
-# version_weight = int(weight.split(':')[1])
-
-# billing = compose_data['services']['billing']['image']
-# billing_deafult_name = billing.split(':')[0]
-# version_billing = int(billing.split(':')[1])
-
-# logger.info(f"Starting a build process for weight.")
-
-# # Incresing version 
-# weight_tag = f"{weight_default_name}:{version_weight + 1}"
-
-# # Building new image
-# weight_build = subprocess.run(["docker", "build", "-t", weight_tag, '/home/ubuntu/project/gan-shmuel/weight'])
-
-# # Changing compose data to new version
-# compose_data['services']['weight']['image'] = weight_tag
-
-
-# logger.info(f"Starting a build process for billing.")
-
-# # Incresing version 
-# billing_tag = f"{billing_deafult_name}:{version_billing + 1}"
-
-# # Building new image
-# billing_build = subprocess.run(["docker", "build", "-t", billing_tag, '/home/ubuntu/project/gan-shmuel/billing'])
-
-# # Changing compose data to new version
-# compose_data['services']['billing']['image'] = billing_tag
-
-# # Updating docker compose file with the new versions
-# with open('./docker-compose.pro.yml', 'w') as file:
-#     yaml.dump(compose_data, file)
-
-# run_production = subprocess.run(["docker", "compose", "-f", "/home/ubuntu/project/gan-shmuel/docker-compose.pro.yml", "up", "-d"])
-
-
-
-# Copy env files to folder the repo folder
-# devops_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-# logger.info(devops_dir)
-# destination_folder = os.path.join(devops_dir, REPO_NAME)
-# copy_env(devops_dir, destination_folder)
-
-
-
 # Clone the repository
 if not os.path.exists(REPO_NAME):
     logger.info("Cloning git repository.")
@@ -88,12 +35,12 @@ weight_default_name = weight.split(':')[0]
 version_weight = int(weight.split(':')[1])
 
 billing = compose_data['services']['billing']['image']
-billing_deafult_name = billing.split(':')[0]
+billing_default_name = billing.split(':')[0]
 version_billing = int(billing.split(':')[1])
 
 logger.info(f"Starting a build process for weight.")
 
-# Incresing version 
+# Increasing version 
 weight_tag = f"{weight_default_name}:{version_weight + 1}"
 
 # Building new image
@@ -107,8 +54,8 @@ compose_data['services']['weight']['image'] = weight_tag
     
 logger.info(f"Starting a build process for billing.")
 
-# Incresing version 
-billing_tag = f"{billing_deafult_name}:{version_billing + 1}"
+# Increasing version 
+billing_tag = f"{billing_default_name}:{version_billing + 1}"
 
 # Building new image
 billing_build = subprocess.run(["docker", "build", "-t", billing_tag, './billing'])
@@ -129,43 +76,6 @@ logger.info(f"Running test environment.")
 run_dev_env = subprocess.run(["docker", "compose", "-f", "docker-compose.dev.yml", "up", "-d"])
 if run_dev_env.returncode != 0:
     logger.error(f"Run testing environment process failed.")
-
-# # Run testing
-# logger.info(f"Running tests.")
-# # test = subprocess.run([ COMMEND 'exec', 'app', 'pytest'])
-# # if test.returncode != 0:
-# #     logger.error(f"Testing failed.")
-# #     send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing')
-# #     return jsonify({'error': 'Testing failed.'}), 500
-
-# logger.info(f"Tearing down test environment.")
-# stop_dev_env = subprocess.run(["docker", "compose", "-f", "docker-compose.dev.yml", "down"])
-# if stop_dev_env.returncode != 0:
-#     logger.error("Failed to stop running containers.")
-
-
-# # Replace production
-# logger.info(f"Replacing production")
-
-# # Replace version
-# with open('docker-compose.pro.yml', 'r') as file:
-#     compose_pro_data = yaml.safe_load(file)
-
-# compose_pro_data['services']['weight']['image'] = weight_tag
-
-# compose_pro_data['services']['billing']['image'] = billing_tag
-
-# with open('docker-compose.pro.yml', 'w') as file:
-#     yaml.dump(compose_pro_data, file, sort_keys=False)
-
-
-# replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])
-# if replace_production.returncode != 0:
-#     logger.error(f"Replacing production process failed.")
-#     send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replacing production')
-#     return jsonify({'error': 'Replacing production process failed.'}), 500
-
-
 
 
 
