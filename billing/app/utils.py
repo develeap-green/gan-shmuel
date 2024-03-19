@@ -22,6 +22,25 @@ from sqlalchemy import MetaData
 # logger = logging.getLogger(__name__)
 
 
+# Utility function for the health-check route.
+def checkDBHealth():
+    try:
+        with pymysql.connect(
+            host='mysql-billing',
+            user='user',
+            password='pass',
+            database='billing',
+            port=3306,
+            connect_timeout=5
+        ) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+            return {"status": "OK"}
+    except pymysql.MySQLError as e:
+        # logger.error(f"Database health check failed: {e}")
+        return {"status": "Failure", "reason": str(e)}
+
+
 # Utility function for the tables route - testing only
 def get_table_contents(table):
     try:

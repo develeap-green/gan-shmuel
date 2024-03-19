@@ -25,10 +25,3 @@ def send_email(subject, html_page, stage):
         logger.info(f"Email was sent successfully to {recipients}")
     except Exception as e:
         logger.error(f'Error sending email: {e}')
-
-def copy_env(source_dir, dest_dir):
-    env_files = {'weight.env', 'billing.env', 'nginx.conf', 'nginx_pro.conf'}
-    for file in env_files:
-        source_file = os.path.join(source_dir, file)
-        dest_file = os.path.join(dest_dir, file)
-        shutil.copy(source_file, dest_file)

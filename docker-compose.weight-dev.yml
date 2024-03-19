@@ -1,0 +1,19 @@
+version: '3'
+services:
+
+  billing:
+    build:
+      context: .
+      dockerfile: billing/Dockerfile
+    env_file:
+      - ./billing/.env
+    restart: always
+    networks:
+      - network
+    
+
+volumes:
+  db:
+
+networks:
+  network:

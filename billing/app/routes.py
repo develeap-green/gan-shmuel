@@ -1,9 +1,7 @@
-from http import HTTPStatus
-from sqlalchemy import text
-from app.utils import showTablesContents, downloadRates, updateRatesFromFile, getTheBill, \
+from app.utils import checkDBHealth, showTablesContents, downloadRates, updateRatesFromFile, getTheBill,\
       createTheProvider, updateTheProvider, createTheTruck, updateTheTruckProvider, getTheTruck
 from flask import request, jsonify
-from app import app, db
+from app import app
 import os
 #import logging
 
@@ -70,22 +68,21 @@ def getBill(providerId):
     return getTheBill(providerId)
 
 
-# Health Check Route
+# Check the health of the DB
 @app.route("/health", methods=["GET"])
-def health_check():
+def healthCheck():
     """
-    Health Check Route
-    Performs a health check on the system, verifying the availability of external resources.
-    Returns:
-        JSON: A status message indicating the health status of the system.
+        Health Check Route
+        Performs a health check on the system, verifying the availability of external resources.
+        Returns:
+            JSON: A status message indicating the health status of the system.
     """
-    try:
-        with db.engine.connect() as connection:
-            connection.execute(text('SELECT 1'))
-        return jsonify({"Status": "OK"}), HTTPStatus.OK
-    except Exception as e:
-        # logging.error(f"Database health check failed: {e}")
-        return jsonify({"Status": "Failure", "reason": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+    dbHealth = checkDBHealth()
+
+    if dbHealth["status"] == "OK":
+        return jsonify({"Status": "OK"}), 200
+    else:
+        return jsonify({"Status": "Failure", "details": {"db_health": dbHealth}}), 500
 
 
 ####################################################################
