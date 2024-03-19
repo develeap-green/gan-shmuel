@@ -61,8 +61,8 @@ services:
       
 
 volumes:
-tesing_weight_database:
-tesing_billing_database:
+  tesing_weight_database:
+  tesing_billing_database:
 
 networks:
   test-network:
