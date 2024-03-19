@@ -24,3 +24,6 @@ class Trucks(db.Model):
 
     def __repr__(self):
         return f"<Trucks(id={self.id}, provider_id={self.provider_id})>"
+    
+
+

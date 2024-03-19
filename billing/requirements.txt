@@ -4,3 +4,6 @@ pymysql
 python-dotenv
 cryptography
 requests
+pandas
+openpyxl
+Flask-Excel
