@@ -25,9 +25,10 @@ services:
       - db
       # db:
       #  condition: service_healthy
-
-
+    volumes:
+      - ./in:/in
 
 volumes:
   weight_db_data:
+
 
