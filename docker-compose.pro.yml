@@ -5,12 +5,13 @@ services:
   weight:
     image: weight-image:0
     hostname: weight
+    ports:
+      - "8081:5000"
     env_file:
       - ./weight.env
     restart: always
     networks:
       - weight-network
-      - nginx-network
     depends_on:
       mysql-weight:
         condition: service_healthy
@@ -35,12 +36,13 @@ services:
   billing:
     image: billing-image:0
     hostname: billing
+    ports:
+      - "8082:5000"
     env_file:
       - ./billing.env
     restart: always
     networks:
       - billing-network
-      - nginx-network
     volumes:
       - ./billing/logs:/app/logs
       - ./in:/app/in
@@ -72,4 +74,3 @@ volumes:
 networks:
   billing-network:
   weight-network:
-  nginx-network:

@@ -3,7 +3,7 @@ services:
 
   # Weight
   weight:
-    image: weight-image:1
+    image: weight-image:3
     env_file:
       - ./weight.env
     restart: always
@@ -22,7 +22,7 @@ services:
       - test-network
     volumes:
       - ./weight/db:/docker-entrypoint-initdb.d
-      - weight_datbase:/var/lib/mysql
+      - weight_database:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 30s 
@@ -31,7 +31,7 @@ services:
 
   # Billing
   billing:
-    image: billing-image:1
+    image: billing-image:3
     env_file:
       - ./billing.env
     restart: always
@@ -50,7 +50,7 @@ services:
       - test-network
     volumes:
       - ./billing/db-init:/docker-entrypoint-initdb.d
-      - billing_datbase:/var/lib/mysql
+      - billing_database:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 30s 
@@ -58,8 +58,8 @@ services:
       
 
 volumes:
-  weight_datbase:
-  billing_datbase:
+  weight_database:
+  billing_database:
 
 networks:
   test-network:
