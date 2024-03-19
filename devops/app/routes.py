@@ -36,16 +36,14 @@ def monitor():
     for line in lines:
         if line:
             parts = line.split()
-            # if parts[0] == 'weight-image':
-            if parts[0] == 'devops-api':
+            if parts[0] == 'weight-image':
                 images_weight.append({
                     'repository': parts[0],
                     'tag': parts[1],
                     'image_id': parts[2],
                     'created': parts[4] + ' ' + parts[5] + ' ' + parts[6]
                 })
-            # if parts[0] == 'billing-image':
-            if parts[0] == 'devops-api':
+            if parts[0] == 'billing-image':
                 images_billing.append({
                     'repository': parts[0],
                     'tag': parts[1],
