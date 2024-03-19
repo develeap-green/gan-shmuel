@@ -9,9 +9,9 @@ import os
 
 ##################################
 # Retrieve the WEIGHT_SERVER_URL environment variable from docker compose 
-#weight_server_url = os.getenv('WEIGHT_SERVER_URL')
-# Check if the WEIGHT_SERVER_URL environment variable is not set
-#if not weight_server_url:
+# weight_server_url = os.getenv('WEIGHT_SERVER_URL')
+# # Check if the WEIGHT_SERVER_URL environment variable is not set
+# if not weight_server_url:
 #    raise ValueError("The WEIGHT_SERVER_URL environment variable must be set.")
 #####################################
 

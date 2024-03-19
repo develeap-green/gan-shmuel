@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  weight_db:
+    image: mysql:8.3
+    environment:
+      MYSQL_DATABASE: 'weight'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'pass'
+      MYSQL_ROOT_PASSWORD: 'pass'
+    volumes:
+      - weight_db_data:/var/lib/mysql
+      - ./weight/db:/docker-entrypoint-initdb.d
+    restart: always
+
+  weight_api:
+    build: ./weight
+    restart: always
+    ports:
+      - "5000:5000"
+    depends_on:
+      - weight_db
+
+  billing_db:
+    image: mysql:8.3
+    environment:
+      MYSQL_DATABASE: 'billing'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'pass'
+      MYSQL_ROOT_PASSWORD: 'pass'
+    ports:
+      - "3307:3306" # Different port to avoid conflict with weight_db
+    volumes:
+      - billing_db_data:/var/lib/mysql
+      - ./billing/db-init:/docker-entrypoint-initdb.d
+    restart: always
+
+  billing_api:
+    build: ./billing
+    ports:
+      - "8000:5000" # Different port to avoid conflict with weight_api
+    environment:
+      - MYSQL_HOST=billing_db
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pass
+      - WEIGHT_SERVER_URL=http://weight_api:5000
+    depends_on:
+      - billing_db
+
+volumes:
+  weight_db_data:
+  billing_db_data:
+  logs:
