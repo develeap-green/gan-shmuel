@@ -3,10 +3,8 @@ from app.models import Provider, Rates, Trucks
 from flask import abort, request, jsonify, make_response
 from sqlalchemy import create_engine 
 from datetime import datetime
-import flask_excel as excel
 import requests
 import json
-import pymysql
 import logging
 import os
 import pandas as pd
@@ -430,10 +428,11 @@ def updateRatesFromFile():
             
             # Commit the changes to the database
             db.session.commit()
-            return "Database updated successfully"
+            return jsonify({"OK": "Database updated successfully", "Status Code:": 200})
 
         else:
-            return "File does not exist"
+            return jsonify({"Error": "File does not exist", "Status Code:": 500})
+        
     except Exception as e:
         # Rollback any changes made to the database session
         db.session.rollback()
@@ -458,7 +457,7 @@ def downloadRates():
         flaskResponse = make_response(response)
         cd = 'attachment; filename=rates.csv'
         flaskResponse.headers['Content-Disposition'] = cd
-        flaskResponse.mimetype='text/csv'
+        flaskResponse.mimetype = 'text/csv'
         return flaskResponse
     except Exception as e:
         # Log the exception and return an error response
