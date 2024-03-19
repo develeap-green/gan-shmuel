@@ -38,13 +38,13 @@ services:
     ports:
       - "8082:5000"
     env_file:
-      - /home/ubuntu/gan/app/billing/billing.env
+      - ./billing/billing.env
     restart: always
     networks:
       - billing-network
     volumes:
-      - /home/ubuntu/gan/app/billing/logs:/app/logs
-      - /home/ubuntu/gan/app/billing/in:/app/in
+      - ./billing/logs:/app/logs
+      - ./billing/in:/app/in
     depends_on:
       mysql-billing:
         condition: service_healthy
@@ -53,12 +53,12 @@ services:
     image: mysql:8.3
     hostname: mysql-billing
     env_file:
-      - /home/ubuntu/gan/app/billing/billing.env
+      - ./billing/billing.env
     restart: always
     networks:
       - billing-network
     volumes:
-      - /home/ubuntu/gan/app/billing/db:/docker-entrypoint-initdb.d
+      - ./billing/db:/docker-entrypoint-initdb.d
       - db-data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]

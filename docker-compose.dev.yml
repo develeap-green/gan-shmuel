@@ -5,7 +5,7 @@ services:
   weight:
     image: weight-image:4
     env_file:
-      - /home/ubuntu/gan/app/weight.env
+      - ./weight.env
     restart: always
     networks:
       - test-network
@@ -16,12 +16,12 @@ services:
   mysql-weight:
     image: mysql:8.3
     env_file:
-      - /home/ubuntu/gan/app/weight.env
+      - ./weight.env
     restart: always
     networks:
       - test-network
     volumes:
-      - /home/ubuntu/gan/app/weight/db:/docker-entrypoint-initdb.d
+      - ./weight/db:/docker-entrypoint-initdb.d
       - testing_weight_database:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
@@ -33,13 +33,13 @@ services:
   billing:
     image: billing-image:4
     env_file:
-      - /home/ubuntu/gan/app/billing.env
+      - ./billing.env
     restart: always
     networks:
       - test-network
     volumes:
-      - /home/ubuntu/gan/app/billing/logs:/app/logs
-      - /home/ubuntu/gan/app/billing/in:/app/in
+      - ./billing/logs:/app/logs
+      - ./billing/in:/app/in
     depends_on:
       mysql-billing:
         condition: service_healthy
@@ -47,12 +47,12 @@ services:
   mysql-billing:
     image: mysql:8.3
     env_file:
-      - /home/ubuntu/gan/app/billing.env
+      - ./billing.env
     restart: always
     networks:
       - test-network
     volumes:
-      - /home/ubuntu/gan/app/billing/db-init:/docker-entrypoint-initdb.d
+      - ./billing/db-init:/docker-entrypoint-initdb.d
       - tesing_billing_database:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
@@ -61,8 +61,8 @@ services:
       
 
 volumes:
-  tesing_weight_database:
-  tesing_billing_database:
+tesing_weight_database:
+tesing_billing_database:
 
 networks:
   test-network:
