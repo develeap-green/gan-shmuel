@@ -184,6 +184,7 @@ def post_transaction():
 @app.route('/item/<id>')
 def get_item(id):
     # parse query params
+    res = {}
     try:
         now = datetime.now()
         to = request.args.get('to', now.strftime('%Y%m%d%H%M%S'))
@@ -236,7 +237,7 @@ def get_item(id):
         return {"error": "invalid item id"}, HTTPStatus.BAD_REQUEST
 
     if not res:
-        return "", HTTPStatus.NOT_FOUND
+        return "", HTTPStatus.OK
 
     return jsonify(res), HTTPStatus.OK
 
@@ -291,8 +292,8 @@ def get_uknown_containers():
 def health_check():
     try:
         db.session.execute(text('SELECT 1'))
-        return '', HTTPStatus.OK
+        return {'status': 'success', 'message': 'Ok'}, HTTPStatus.OK
 
     except Exception as err:
         logging.error(f"Database connection error: {err}")
-        return '', HTTPStatus.SERVICE_UNAVAILABLE
+        return {'status': 'error', 'message': 'Error'}, HTTPStatus.SERVICE_UNAVAILABLE
