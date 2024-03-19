@@ -177,7 +177,7 @@ def test_valid_item_2():
 
 
 # DIRECTIONS
-    
+
 def test_in_after_in_with_force():
     truck_id = ''.join(sample(string.ascii_letters, 4))
     random_weight = random.randint(1, 1000)
@@ -202,6 +202,7 @@ def test_in_after_in_with_force():
     })
     assert r1.status_code == 201
 
+
 def test_in_after_in_without_force():
     truck_id = ''.join(sample(string.ascii_letters, 4))
     random_weight = random.randint(1, 1000)
@@ -215,6 +216,7 @@ def test_in_after_in_without_force():
     })
     assert r.status_code == 400
 
+
 def test_none_after_in_results_error():
     container_id = ''.join(sample(string.ascii_letters, 4))
     random_weight = random.randint(1, 1000)
@@ -225,7 +227,7 @@ def test_none_after_in_results_error():
         "unit": "kg",
         "produce": "Apples"
     })
-    assert r.status_code == 500
+    assert r.status_code == 400
 
 
 def test_out_after_in_success():
@@ -253,6 +255,7 @@ def test_out_after_in_success():
     })
     assert r.status_code == 201
 
+
 def test_out_without_in_before_failure():
     truck_id = ''.join(sample(string.ascii_letters, 4))
     random_weight = random.randint(1, 1000)
@@ -266,49 +269,60 @@ def test_out_without_in_before_failure():
     })
     assert r1.status_code == 400
 
+
 def test_out_after_out_force_false():
     random_weight = random.randint(1, 1000)
-    test_dict2 = {'direction': "out", 'truck': "T-12345", 'weight': random_weight, "unit": "kg","produce": "Apples", "force": False}
-    r1 = requests.post(f"{base_url2}/weight", json = test_dict2)
+    test_dict2 = {'direction': "out", 'truck': "T-12345",
+                  'weight': random_weight, "unit": "kg", "produce": "Apples", "force": False}
+    r1 = requests.post(f"{base_url2}/weight", json=test_dict2)
     assert r1.status_code == 400
-    test_dict3 = {'direction': "out", 'truck': "T-12345", 'weight': random_weight, "unit": "kg","produce": "Apples" , "force": False}
-    r2 = requests.post(f"{base_url2}/weight", json = test_dict3)
+    test_dict3 = {'direction': "out", 'truck': "T-12345",
+                  'weight': random_weight, "unit": "kg", "produce": "Apples", "force": False}
+    r2 = requests.post(f"{base_url2}/weight", json=test_dict3)
     assert r2.status_code == 400
-
 
 
 def test_out_after_out_force_true():
     random_weight = random.randint(1, 1000)
-    test_dict1= {'direction': "in", 'truck': "T-12345", 'weight': random_weight, "unit": "kg","produce": "Apples", "force": True}
-    r1 = requests.post(f"{base_url2}/weight", json = test_dict1)
+    test_dict1 = {'direction': "in", 'truck': "T-12345",
+                  'weight': random_weight, "unit": "kg", "produce": "Apples", "force": True}
+    r1 = requests.post(f"{base_url2}/weight", json=test_dict1)
     assert r1.status_code == 500
-    test_dict2 = {'direction': "out", 'truck': "T-12345", 'weight': random_weight, "unit": "kg","produce": "Apples", "force": True}
-    r2 = requests.post(f"{base_url2}/weight", json = test_dict2)
+    test_dict2 = {'direction': "out", 'truck': "T-12345",
+                  'weight': random_weight, "unit": "kg", "produce": "Apples", "force": True}
+    r2 = requests.post(f"{base_url2}/weight", json=test_dict2)
     assert r2.status_code == 201
-    test_dict3 = {'direction': "out", 'truck': "T-12345", 'weight': random_weight, "unit": "kg","produce": "Apples" , "force": True}
-    r3 = requests.post(f"{base_url2}/weight", json = test_dict3)
+    test_dict3 = {'direction': "out", 'truck': "T-12345",
+                  'weight': random_weight, "unit": "kg", "produce": "Apples", "force": True}
+    r3 = requests.post(f"{base_url2}/weight", json=test_dict3)
     assert r3.status_code == 201
 
     # WRONG_VALUES_IN
 
+
 def test_out_after_out_force_true():
     truck_id = ''.join(sample(string.ascii_letters, 4))
     random_weight = random.randint(1, 1000)
-    test_dict1= {'direction': "in", 'truck': f"T-{truck_id}"}
-    r1 = requests.post(f"{base_url2}/weight", json = test_dict1)
+    test_dict1 = {'direction': "in", 'truck': f"T-{truck_id}"}
+    r1 = requests.post(f"{base_url2}/weight", json=test_dict1)
     assert r1.status_code == 500
-    test_dict1= {'direction': "in", 'truck': f"T-{truck_id}", 'weight': random_weight}
-    r1 = requests.post(f"{base_url2}/weight", json = test_dict1)
+    test_dict1 = {'direction': "in",
+                  'truck': f"T-{truck_id}", 'weight': random_weight}
+    r1 = requests.post(f"{base_url2}/weight", json=test_dict1)
     assert r1.status_code == 500
-    test_dict1= {'direction': "in", 'truck': f"T-{truck_id}", 'weight': random_weight, "unit": "kg"}
-    r1 = requests.post(f"{base_url2}/weight", json = test_dict1)
-    assert r1.status_code == 500    
-    test_dict1= {'direction': "in", 'truck': f"T-{truck_id}", 'weight': random_weight, "unit": "kg", "produce": "Apples"}
-    r1 = requests.post(f"{base_url2}/weight", json = test_dict1)
+    test_dict1 = {'direction': "in", 'truck': f"T-{truck_id}",
+                  'weight': random_weight, "unit": "kg"}
+    r1 = requests.post(f"{base_url2}/weight", json=test_dict1)
     assert r1.status_code == 500
+    test_dict1 = {'direction': "in", 'truck': f"T-{truck_id}",
+                  'weight': random_weight, "unit": "kg", "produce": "Apples"}
+    r1 = requests.post(f"{base_url2}/weight", json=test_dict1)
+    assert r1.status_code == 500
+
 
 def test_no_product_name_results_succes():
     random_weight = random.randint(1, 1000)
-    test_dict3 = {'direction': "out", 'truck': "T-12345", 'weight': random_weight, "unit": "kg", "force": True}
-    r3 = requests.post(f"{base_url2}/weight", json = test_dict3)
+    test_dict3 = {'direction': "out", 'truck': "T-12345",
+                  'weight': random_weight, "unit": "kg", "force": True}
+    r3 = requests.post(f"{base_url2}/weight", json=test_dict3)
     assert r3.status_code == 201
