@@ -691,6 +691,8 @@ def trigger():
     if stop_dev_env.returncode != 0:
         logger.error("Failed to stop running containers.")
 
+    logger.info(f"Removing test volume.")
+    stop_volume = subprocess.run(["docker", "volume", "rm", "testing_billing_database", "testing_weight_database"])
 
     # Replace production
     logger.info(f"Replacing production")
