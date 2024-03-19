@@ -292,8 +292,8 @@ def get_uknown_containers():
 def health_check():
     try:
         db.session.execute(text('SELECT 1'))
-        return '', HTTPStatus.OK
+        return {'status': 'success', 'message': 'Ok'}, HTTPStatus.OK
 
     except Exception as err:
         logging.error(f"Database connection error: {err}")
-        return '', HTTPStatus.SERVICE_UNAVAILABLE
+        return {'status': 'error', 'message': 'Error'}, HTTPStatus.SERVICE_UNAVAILABLE
