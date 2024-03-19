@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS `transactions` (
   `session_id` int(12) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=10001 ;
+<<<<<<< HEAD
 
 show tables;
 
@@ -51,3 +52,5 @@ describe transactions;
 -- Dumping data for table `test`
 --
 
+=======
+>>>>>>> weight-main

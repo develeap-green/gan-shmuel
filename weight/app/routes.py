@@ -140,19 +140,20 @@ def post_transaction():
         else:
             containers = ''
 
-        containers = db.session.query(ContainersRegistered).filter(
+        db_containers = db.session.query(ContainersRegistered).filter(
             ContainersRegistered.container_id.in_(containers)).all()
-
+        # even if force should be correct to hold the prev session
         session_id = last_row.session_id
 
         truck_tara = int(data['weight'])
+        weights = [c.weight for c in db_containers]
 
-        weights = [c.weight for c in containers]
-
-        if all(isinstance(w, int) for w in weights):
+        if len(weights) > 0 and all(isinstance(w, int) for w in weights) and len(containers) == len(db_containers):
             tara_containers = sum(weights)
             neto = truck_tara - int(tara_containers)
         else:
+            logging.error(
+                "one or more containers are un-registered, batch is void!")
             tara_containers = None
             neto = None
 
@@ -292,8 +293,8 @@ def get_uknown_containers():
 def health_check():
     try:
         db.session.execute(text('SELECT 1'))
-        return '', HTTPStatus.OK
+        return {'status': 'success', 'message': 'Ok'}, HTTPStatus.OK
 
     except Exception as err:
         logging.error(f"Database connection error: {err}")
-        return '', HTTPStatus.SERVICE_UNAVAILABLE
+        return {'status': 'error', 'message': 'Error'}, HTTPStatus.SERVICE_UNAVAILABLE
