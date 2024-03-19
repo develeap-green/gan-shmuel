@@ -672,7 +672,7 @@ def trigger():
 
     # Running testing env
     logger.info(f"Running test environment.")
-    run_dev_env = subprocess.run(["docker", "compose", "-f", "docker-compose.dev.yml", "up", "-d"])
+    run_dev_env = subprocess.run(["docker", "compose", "-p", "testing", "-f", "docker-compose.dev.yml", "up", "-d"])
     if run_dev_env.returncode != 0:
         logger.error(f"Run testing environment process failed.")
         send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Run testing environment')
@@ -687,7 +687,7 @@ def trigger():
     # #     return jsonify({'error': 'Testing failed.'}), 500
 
     logger.info(f"Tearing down test environment.")
-    stop_dev_env = subprocess.run(["docker", "compose", "-f", "docker-compose.dev.yml", "down"])
+    stop_dev_env = subprocess.run(["docker", "compose", "-p", "testing", "-f", "docker-compose.dev.yml", "down"])
     if stop_dev_env.returncode != 0:
         logger.error("Failed to stop running containers.")
 
