@@ -82,7 +82,7 @@ def test_update_truck():
     response = requests.put(f"{BASE_URL}/truck/{GLOBAL_TRUCK_ID}", json=update_data)
     assert response.status_code == 200, "Failed to update truck"
 
-# Not working until Zori fixes the trucks-using-DB instead of mock
+# Only when not using mock
 # def test_get_truck_data():
 #     response = requests.get(f"{BASE_URL}/truck/{GLOBAL_TRUCK_ID}")
 #     assert response.status_code == 200, "Expected to find the global truck data"
@@ -108,7 +108,6 @@ def test_get_rates_with_date_range():
     url = f"{BASE_URL}/rates?from=20230101&to=20240101"
     response = requests.get(url)
     assert response.status_code == 200, "Should succeed with valid date range"
-
 
 
 if __name__ == "__main__":

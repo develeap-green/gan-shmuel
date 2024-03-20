@@ -1,21 +1,13 @@
 from app import app, db, DB_URI
 from app.models import Provider, Rates, Trucks
 from flask import abort, request, jsonify, make_response
-from sqlalchemy import create_engine 
+from sqlalchemy import create_engine ,MetaData
 from datetime import datetime
-import flask_excel as excel
 import requests
-import json
-import pymysql
 import logging
 import os
 import pandas as pd
 
-
-#####################################
-# For /tables route, testing only
-from sqlalchemy import MetaData
-########################################
 
 
 # Configure logger
@@ -78,41 +70,26 @@ def processWeightSessions(weightSessions, rates):
     # Update the count of unique trucks in billDetails
     billDetails['truck_count'] = len(unique_trucks)
     return billDetails
-# def fetch_weight_sessions(from_date, to_date, provider_id):
-#     # Get the weight server URL from environment variables
-#     weight_server_url = os.getenv('WEIGHT_SERVER_URL')
-#     if not weight_server_url:
-#         # Raise an error if the WEIGHT_SERVER_URL environment variable is not set
-#         raise ValueError("The WEIGHT_SERVER_URL environment variable must be set.")
-#     # Construct the URL with query parameters
-#     url = f"{weight_server_url}/weight?from={from_date}&to={to_date}&filter=in,out,none"
-#     try:
-#         # Send a GET request to the constructed URL
-#         response = requests.get(url)
-#         response.raise_for_status()  # Check for HTTP errors
-#         return response.json()  # Assume the response is JSON
-#     except requests.RequestException as e:
-#         # Handle any request exceptions, such as network errors
-#         print(f"Error fetching weight sessions data: {e}")
-#         return None
-# # Mock function to simulate fetching weight sessions from a database
+
 def fetchWeightSessions(from_date, to_date, provider_id):
-    #  sample data resembling database records
-    sample_data = [
-        {"datetime": "2024-03-11 12:38:38", "direction": "out", "truck": "T-18186", "produce": "Navel", "neto": 700, "session_id": 7781},
-        {"datetime": "2024-03-15 17:07:42", "direction": "in", "truck": "T-15083", "produce": "Blood", "neto": 847, "session_id": 8119},
-        {"datetime": "2024-03-10 23:13:05", "direction": "out", "truck": "T-54612", "produce": "Grapefruit", "neto": 792, "session_id": 8621},
-        {"datetime": "2024-03-08 10:24:55", "direction": "in", "truck": "T-17464", "produce": "Valencia", "neto": 1507, "session_id": 4943}
-    ]
-    # Remove newline character and parse dates
-    from_date_cleaned = from_date.strip()  # Remove  whitespace and newline characters
-    to_date_cleaned = to_date.strip()  # Remove  whitespace and newline characters
-    # Convert from_date and to_date strings to datetime objects
-    from_date_obj = datetime.strptime(from_date_cleaned, '%Y%m%d%H%M%S')
-    to_date_obj = datetime.strptime(to_date_cleaned, '%Y%m%d%H%M%S')
-    # Filter the sample data based on the provided date range and provider_id (if applicable)
-    filtered_data = [record for record in sample_data if from_date_obj <= datetime.strptime(record["datetime"], '%Y-%m-%d %H:%M:%S') <= to_date_obj]
-    return filtered_data
+    # Get the weight server URL from environment variables
+    weight_server_url = os.getenv('http://greenteam.hopto.org:8081')
+    if not weight_server_url:
+        # Raise an error if the WEIGHT_SERVER_URL environment variable is not set
+        raise ValueError("The WEIGHT_SERVER_URL environment variable must be set.")
+    # Construct the URL with query parameters
+    url = f"{weight_server_url}/weight?from={from_date}&to={to_date}&filter=in,out,none"
+    try:
+        # Send a GET request to the constructed URL
+        response = requests.get(url)
+        response.raise_for_status()  # Check for HTTP errors
+        return response.json()  # Assume the response is JSON
+    except requests.RequestException as e:
+        # Handle any request exceptions, such as network errors
+        print(f"Error fetching weight sessions data: {e}")
+        return None
+
+
 # Function to fetch rates from a CSV file and return them as a dictionary
 def getRatesDict(providerID):
     try:
@@ -332,13 +309,6 @@ def updateTheTruckProvider(truckID):
 
 
 # For /truck/<id> route
-
-####################################
-# Mock trucks data file
-with open('in/mock_trucks_with_sessions.json', 'r') as file:
-    truckData = json.load(file) 
-####################################       
-
 def getTheTruck(id):
     # Remove whitespace and newlines from the truckID
     id = id.strip()

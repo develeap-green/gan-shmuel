@@ -54,9 +54,9 @@ INSERT INTO `Rates` (`product_id`, `rate`, `scope`) VALUES
 ("Valencia", 90, "45");
 
 INSERT INTO `Trucks` (`id`, `provider_id`) VALUES 
-('T-14409', 10001),
-('T-16474', 10001),
-('T-14964', 10001),
+('T14409', 10001),
+('T16474', 10001),
+('T14964', 10001),
 ('T-17194', 10001),
 ('T-17250', 10001),
 ('T-14045', 10001),
