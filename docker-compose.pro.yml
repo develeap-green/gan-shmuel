@@ -24,7 +24,7 @@ services:
     networks:
       - weight-network
     volumes:
-      - weight_db_data:/var/lib/mysql
+      - weight_data:/var/lib/mysql
       - ./weight/db:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
@@ -59,7 +59,7 @@ services:
       - billing-network
     volumes:
       - ./billing/db:/docker-entrypoint-initdb.d
-      - db-data:/var/lib/mysql
+      - db-data_bill:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 30s 
@@ -67,8 +67,8 @@ services:
 
 
 volumes:
-  weight_db_data:
-  db-data:
+  weight_data:
+  db-data_bill:
   logs:
 
 networks:
