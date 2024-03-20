@@ -154,8 +154,8 @@ def rollback():
     try:
 
         # Get values from submit form
-        weight_tag = int(request.form.get('weight_tag'))
-        billing_tag = int(request.form.get('billing_tag'))
+        weight_tag = request.form.get('weight_tag')
+        billing_tag = request.form.get('billing_tag')
 
         if not weight_tag and not billing_tag:
             return jsonify({'message': 'Keeping current version.'}), 200
@@ -180,8 +180,8 @@ def rollback():
         FILE_COMPOSE_PROD = './docker-compose.pro.yml'
 
         # Change versions in file with sed cmd
-        change_version_w = subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_default_name}:{weight_tag + 1}/", FILE_COMPOSE_PROD])
-        change_version_b = subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_deafult_name}:{billing_tag + 1}/", FILE_COMPOSE_PROD])
+        subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_tag}/", FILE_COMPOSE_PROD])
+        subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_tag}/", FILE_COMPOSE_PROD])
 
         # Run prod compose with updated version
         replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])
@@ -345,13 +345,13 @@ def trigger():
         send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Run testing environment',emails=emails)
         return jsonify({'error': 'Run testing environment process failed.'}), 500
 
-    # # Run testing
-    # logger.info(f"Running tests.")
-    # # test = subprocess.run([ COMMEND 'exec', 'app', 'pytest'])
-    # # if test.returncode != 0:
-    # #     logger.error(f"Testing failed.")
-    # #     send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing', emails=emails)
-    # #     return jsonify({'error': 'Testing failed.'}), 500
+    # Run testing
+    logger.info(f"Running tests.")
+    test = subprocess.run([ 'COMMEND' 'exec', 'app', 'pytest'])
+    if test.returncode != 0:
+        logger.error(f"Testing failed.")
+        send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing', emails=emails)
+        return jsonify({'error': 'Testing failed.'}), 500
 
     logger.info(f"Tearing down test environment.")
     stop_dev_env = subprocess.run(["docker", "compose", "-p", "testing", "-f", "docker-compose.dev.yml", "down"])
