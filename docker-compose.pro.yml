@@ -58,7 +58,7 @@ services:
     networks:
       - billing-network
     volumes:
-      - ./billing/db_init:/docker-entrypoint-initdb.d
+      - ./billing/db-init:/docker-entrypoint-initdb.d
       - db-data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
