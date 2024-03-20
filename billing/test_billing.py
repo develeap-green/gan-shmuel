@@ -3,7 +3,7 @@ import random
 import time
 
 # Constants
-BASE_URL = "http://localhost:5000/"
+BASE_URL = "http://localhost:5000"
 
 # Utility Functions
 def get_short_timestamp():
