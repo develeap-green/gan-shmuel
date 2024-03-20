@@ -344,13 +344,28 @@ def trigger():
         send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Run testing environment',emails=emails)
         return jsonify({'error': 'Run testing environment process failed.'}), 500
 
-    # # Run testing
-    # logger.info(f"Running tests.")
-    # test = subprocess.run([ 'COMMEND' 'exec', 'app', 'pytest'])
-    # if test.returncode != 0:
-    #     logger.error(f"Testing failed.")
-    #     send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing', emails=emails)
-    #     return jsonify({'error': 'Testing failed.'}), 500
+    # Run testing
+    logger.info(f"Running tests billing.")
+    subprocess.run([ 'cd' 'weight'])
+    test = subprocess.run([ 'pytest' 'test_routes.py'])
+    if test.returncode != 0:
+        logger.error(f"Testing failed.")
+        send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing', emails=emails)
+        return jsonify({'error': 'Testing failed.'}), 500
+    
+    logger.info(f"Passed weight testing.")
+    subprocess.run([ 'cd' '-'])
+
+    logger.info(f"Running tests billing.")
+    subprocess.run([ 'cd' 'billing'])
+    test = subprocess.run([ 'pytest' 'test_billing.py'])
+    if test.returncode != 0:
+        logger.error(f"Testing failed.")
+        send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing', emails=emails)
+        return jsonify({'error': 'Testing failed.'}), 500
+    
+    logger.info(f"Passed billing testing.")
+    subprocess.run([ 'cd' '-'])
 
     logger.info(f"Tearing down test environment.")
     stop_dev_env = subprocess.run(["docker", "compose", "-p", "testing", "-f", "docker-compose.dev.yml", "down"])
