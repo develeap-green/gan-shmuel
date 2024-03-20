@@ -4,11 +4,12 @@ services:
   # Weight
   weight:
     image: weight-image:4
+    container_name: weight_test
     env_file:
       - ./weight.env
     restart: always
     networks:
-      - test-network
+      - weight-network
     depends_on:
       mysql-weight:
         condition: service_healthy
@@ -19,7 +20,7 @@ services:
       - ./weight.env
     restart: always
     networks:
-      - test-network
+      - weight-network
     volumes:
       - ./weight/db:/docker-entrypoint-initdb.d
       - testing_weight_database:/var/lib/mysql
@@ -32,11 +33,12 @@ services:
   # Billing
   billing:
     image: billing-image:4
+    container_name: billing_test
     env_file:
       - ./billing.env
     restart: always
     networks:
-      - test-network
+      - billing-network
     volumes:
       - ./billing/logs:/app/billing/logs
       - ./billing/in:/app/billing/in
@@ -50,7 +52,7 @@ services:
       - ./billing.env
     restart: always
     networks:
-      - test-network
+      - billing-network
     volumes:
       - ./billing/db-init:/docker-entrypoint-initdb.d
       - testing_billing_database:/var/lib/mysql
@@ -65,4 +67,5 @@ volumes:
   testing_billing_database:
 
 networks:
-  test-network:
+  weight-network:
+  billing-network:
