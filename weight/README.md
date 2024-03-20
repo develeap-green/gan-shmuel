@@ -16,7 +16,7 @@
 | containers|`list[str]`	  |A comma-separated list of container IDs involved in the weighing.|
 | weight	|`int`   	      |The weight measurement as an integer.|
 | unit	    | `kg` / `lbs`  	  |The unit of weight, either `kg` or `lbs`. Precision is approximately 5kg, so decimals are not considered.|
-| force	    |`bool`  	      |A boolean flag (true/false). When set to true, it allows overwriting the previous weight of the same truck.|
+| force	    |`bool`  	      |A boolean flag (true/False). When set to true, it allows overwriting the previous weight of the same truck.|
 | produce	|`str` / `na`     |The ID of the produce (e.g., "orange", "tomato"), or `na` if not applicable.|
 
 #### Behavior:
