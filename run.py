@@ -346,7 +346,7 @@ def trigger():
 
     # Run testing
     logger.info(f"Running tests billing.")
-    subprocess.run([ 'cd', 'weight'])
+    os.chdir('weight')
     test = subprocess.run([ 'pytest', 'test_routes.py'])
     if test.returncode != 0:
         logger.error(f"Testing failed.")
@@ -354,10 +354,10 @@ def trigger():
         return jsonify({'error': 'Testing failed.'}), 500
     
     logger.info(f"Passed weight testing.")
-    subprocess.run([ 'cd', '-'])
+    os.chdir('..')
 
     logger.info(f"Running tests billing.")
-    subprocess.run([ 'cd', 'billing'])
+    os.chdir('billing')
     test = subprocess.run([ 'pytest', 'test_billing.py'])
     if test.returncode != 0:
         logger.error(f"Testing failed.")
@@ -365,7 +365,7 @@ def trigger():
         return jsonify({'error': 'Testing failed.'}), 500
     
     logger.info(f"Passed billing testing.")
-    subprocess.run([ 'cd', '-'])
+    os.chdir('..')
 
     logger.info(f"Tearing down test environment.")
     stop_dev_env = subprocess.run(["docker", "compose", "-p", "testing", "-f", "docker-compose.dev.yml", "down"])
