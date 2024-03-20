@@ -10,6 +10,8 @@ import shutil
 from dotenv import load_dotenv
 load_dotenv()
 
+FIRST_RUN = False
+
 FLASK_SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
 REPO_URL = os.environ.get('REPO_URL')
 REPO_NAME = REPO_URL.split('/')[-1].split('.git')[0]
@@ -48,6 +50,8 @@ URL_WEIGHT = 'http://greenteam.hopto.org:8081/health'
 URL_BILLING = 'http://greenteam.hopto.org:8082/health'
 FILE_COMPOSE_DEV = './docker-compose.dev.yml'
 FILE_COMPOSE_PROD = './docker-compose.pro.yml'
+BILLING_IMAGE = 'billing-image'
+WEIGHT_IMAGE = 'weight-image'
 
 
 def delete_repo():
@@ -64,8 +68,8 @@ def send_email(subject, html_page, stage, emails):
     try:
         recipients = ' '.join([email.split('@')[0] for email in emails])
         html_body = render_template(html_page, recipients=recipients, stage=stage)
-        # msg = Message(subject, recipients=emails, html=html_body)
-        # mail.send(msg)
+        msg = Message(subject, recipients=emails, html=html_body)
+        mail.send(msg)
         logger.info(f"Email was sent successfully to {recipients}")
     except Exception as e:
         logger.error(f'Error sending email: {e}')
@@ -77,8 +81,75 @@ def copy_env(source_dir, dest_dir):
         dest_file = os.path.join(dest_dir, file)
         shutil.copy(source_file, dest_file)
 
+def init_prod():
+    
+    new_ver_weight = 1
+    new_ver_billing = 1
+
+    # Pull from repository
+    logger.info("Pulling git repository.")
+    subprocess.run(['git', 'reset', '--hard', 'HEAD'])
+    subprocess.run(['git', 'pull'])
+
+    # Check compose file to get last versions (to find and replace with sed)
+    logger.info("Getting last version from dev compose file.")
+    with open('./docker-compose.dev.yml', 'r') as file:
+        compose_data = yaml.safe_load(file)
+
+    weight = compose_data['services']['weight']['image']
+    ver_tag_w = int(weight.split(':')[1])
+
+    billing = compose_data['services']['billing']['image']
+    ver_tag_b = int(billing.split(':')[1])
+
+    # Build images
+    logger.info(f"Starting a build process for weight.")
+
+    # Incresing version 
+    weight_tag = f"{WEIGHT_IMAGE}:{new_ver_weight}"
+
+    # Building new image
+    weight_build = subprocess.run(["docker", "build", '--no-cache', "-t", weight_tag, './weight'])
+    if weight_build.returncode != 0:
+        logger.error(f"Build process failed - Weight {weight_tag}.")
+
+    logger.info(f"Starting a build process for billing.")
+
+    # Incresing version 
+    billing_tag = f"{BILLING_IMAGE}:{new_ver_billing}"
+
+    # Building new image
+    billing_build = subprocess.run(["docker", "build", '--no-cache', "-t", billing_tag, './billing'])
+    if billing_build.returncode != 0:
+        logger.error(f"Build process failed - Billing {billing_tag}.")
+  
+    # Starting production
+    logger.info(f"Starting production")
+
+    # Check compose file to get last versions (to find and replace with sed)
+    logger.info("Getting last version from prod compose file.")
+    with open('./docker-compose.pro.yml', 'r') as file:
+        compose_data = yaml.safe_load(file)
+
+    weight = compose_data['services']['weight']['image']
+    ver_tag_w = int(weight.split(':')[1])
+
+    billing = compose_data['services']['billing']['image']
+    ver_tag_b = int(billing.split(':')[1])
+
+    # Replace version
+    logger.info(f"s/{WEIGHT_IMAGE}:{ver_tag_w}/{WEIGHT_IMAGE}:{new_ver_weight}/")
+    logger.info(f"s/{BILLING_IMAGE}:{ver_tag_b}/{BILLING_IMAGE}:{new_ver_billing}/")
+    subprocess.run(["sed", "-i", f"s/{WEIGHT_IMAGE}:{ver_tag_w}/{WEIGHT_IMAGE}:{new_ver_weight}/", FILE_COMPOSE_PROD])
+    subprocess.run(["sed", "-i", f"s/{BILLING_IMAGE}:{ver_tag_b}/{BILLING_IMAGE}:{new_ver_billing}/", FILE_COMPOSE_PROD])
+
+    # Run production with the new version
+    replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])
+    if replace_production.returncode != 0:
+        logger.error(f"Replacing production process failed.")
 
 
+init_prod()
 
 @app.route('/', methods=['GET'])
 def index():
@@ -122,7 +193,6 @@ def monitor():
                     'image_id': parts[2],
                     'created': parts[4] + ' ' + parts[5] + ' ' + parts[6]
                 })
-
 
     # Check health routes
     weight_status = False
@@ -177,7 +247,6 @@ def rollback():
 
         # Replace production
         logger.info(f"Replacing production")
-        FILE_COMPOSE_PROD = './docker-compose.pro.yml'
 
         # Change versions in file with sed cmd
         subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_tag}/", FILE_COMPOSE_PROD])
@@ -288,7 +357,7 @@ def trigger():
     # Pull from repository
     logger.info("Pulling git repository.")
     subprocess.run(['git', 'reset', '--hard', 'HEAD'])
-    subprocess.run(['git', 'pull', '--force'])
+    subprocess.run(['git', 'pull'])
 
     # Check compose file to get last versions (to find and replace with sed)
     logger.info("Getting last version from dev compose file.")
@@ -296,11 +365,9 @@ def trigger():
         compose_data = yaml.safe_load(file)
 
     weight = compose_data['services']['weight']['image']
-    weight_default_name = weight.split(':')[0]
     ver_tag_w = int(weight.split(':')[1])
 
     billing = compose_data['services']['billing']['image']
-    billing_deafult_name = billing.split(':')[0]
     ver_tag_b = int(billing.split(':')[1])
 
     # Build images
@@ -308,34 +375,34 @@ def trigger():
         logger.info(f"Weight changed, Starting a build process for weight.")
 
          # Incresing version 
-        weight_tag = f"{weight_default_name}:{new_ver_weight + 1}"
+        weight_tag = f"{WEIGHT_IMAGE}:{new_ver_weight + 1}"
 
         # Building new image
-        weight_build = subprocess.run(["docker", "build", "-t", weight_tag, './weight'])
+        weight_build = subprocess.run(["docker", "build", '--no-cache', "-t", weight_tag, './weight'])
         if weight_build.returncode != 0:
             logger.error(f"Build process failed - Weight {weight_tag}.")
             send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Build stage weight',emails=emails)
             return jsonify({'error': f"Build process failed - Weight {weight_tag}."}), 500
         
         # Changing the compose file version to new version with sed cmd
-        subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_default_name}:{new_ver_weight + 1}/", FILE_COMPOSE_DEV])
+        subprocess.run(["sed", "-i", f"s/{WEIGHT_IMAGE}:{ver_tag_w}/{WEIGHT_IMAGE}:{new_ver_weight + 1}/", FILE_COMPOSE_DEV])
 
 
     if billing_changed:
         logger.info(f"Billing changed, Starting a build process for billing.")
 
         # Incresing version 
-        billing_tag = f"{billing_deafult_name}:{new_ver_billing + 1}"
+        billing_tag = f"{BILLING_IMAGE}:{new_ver_billing + 1}"
 
         # Building new image
-        billing_build = subprocess.run(["docker", "build", "-t", billing_tag, './billing'])
+        billing_build = subprocess.run(["docker", "build", '--no-cache', "-t", billing_tag, './billing'])
         if billing_build.returncode != 0:
             logger.error(f"Build process failed - Billing {billing_tag}.")
             send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Build stage billing',emails=emails)
             return jsonify({'error': f'Build process failed - Billing {billing_tag}.'}), 500
         
         # Changing compose data to new version
-        subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_deafult_name}:{new_ver_billing + 1}/", FILE_COMPOSE_DEV])
+        subprocess.run(["sed", "-i", f"s/{BILLING_IMAGE}:{ver_tag_b}/{BILLING_IMAGE}:{new_ver_billing + 1}/", FILE_COMPOSE_DEV])
 
     # Running testing environment
     logger.info(f"Running test environment.")
@@ -346,12 +413,24 @@ def trigger():
         return jsonify({'error': 'Run testing environment process failed.'}), 500
 
     # Run testing
-    logger.info(f"Running tests.")
-    test = subprocess.run([ 'COMMEND' 'exec', 'app', 'pytest'])
+    logger.info(f"Running tests weight.")
+    test = subprocess.run([ 'docker', 'exec', 'weight_test', 'pytest', 'test_routes.py'])
     if test.returncode != 0:
-        logger.error(f"Testing failed.")
+        logger.error(f"Testing failed - weight.")
         send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing', emails=emails)
-        return jsonify({'error': 'Testing failed.'}), 500
+        # return jsonify({'error': 'Testing failed.'}), 500
+
+    # logger.info(f"Passed weight testing.")
+
+    logger.info(f"Running tests billing.")
+    test = subprocess.run([ 'docker', 'exec', 'billing_test', 'pytest', 'test_billing.py'])
+    if test.returncode != 0:
+        logger.error(f"Testing failed - billing.")
+        send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing', emails=emails)
+        # return jsonify({'error': 'Testing failed.'}), 500
+
+    # logger.info(f"Passed billing test.")
+
 
     logger.info(f"Tearing down test environment.")
     stop_dev_env = subprocess.run(["docker", "compose", "-p", "testing", "-f", "docker-compose.dev.yml", "down"])
@@ -365,9 +444,22 @@ def trigger():
     # Replace production
     logger.info(f"Replacing production")
 
+    # Check compose file to get last versions (to find and replace with sed)
+    logger.info("Getting last version from dev compose file.")
+    with open('./docker-compose.pro.yml', 'r') as file:
+        compose_data = yaml.safe_load(file)
+
+    weight = compose_data['services']['weight']['image']
+    ver_tag_w = int(weight.split(':')[1])
+
+    billing = compose_data['services']['billing']['image']
+    ver_tag_b = int(billing.split(':')[1])
+
     # Replace version
-    subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_default_name}:{new_ver_weight + 1}/", FILE_COMPOSE_PROD])
-    subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_deafult_name}:{new_ver_billing + 1}/", FILE_COMPOSE_PROD])
+    logger.info(f"s/{WEIGHT_IMAGE}:{ver_tag_w}/{WEIGHT_IMAGE}:{new_ver_weight + 1}/")
+    logger.info(f"s/{BILLING_IMAGE}:{ver_tag_b}/{BILLING_IMAGE}:{new_ver_billing + 1}/")
+    subprocess.run(["sed", "-i", f"s/{WEIGHT_IMAGE}:{ver_tag_w}/{WEIGHT_IMAGE}:{new_ver_weight + 1}/", FILE_COMPOSE_PROD])
+    subprocess.run(["sed", "-i", f"s/{BILLING_IMAGE}:{ver_tag_b}/{BILLING_IMAGE}:{new_ver_billing + 1}/", FILE_COMPOSE_PROD])
 
     # Run production with the new version
     replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])
@@ -377,9 +469,8 @@ def trigger():
         return jsonify({'error': 'Replacing production process failed.'}), 500
 
 
-    # send_email(subject='Deploy succeeded', html_page='success_email.html', stage='', emails=emails)
+    send_email(subject='Deploy succeeded', html_page='success_email.html', stage='', emails=emails)
     return jsonify({'status': 'success', 'message': 'Deployment successful'}), 200
-
 
 
 if __name__ == '__main__':

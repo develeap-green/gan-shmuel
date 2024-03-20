@@ -83,7 +83,6 @@
                 <h6>Weight</h6>
                 <select name="weight_tag">
                     {% for image in images_weight %}
-                    <option value=""></option>
                     <option value="{{ image.repository }}:{{ image.tag }}">{{ image.tag }}</option>
                     {% endfor %}
                 </select>
@@ -93,7 +92,6 @@
                 <h6>Billing</h6>
                 <select name="billing_tag">
                     {% for image in images_billing %}
-                    <option value=""></option>
                     <option value="{{ image.repository }}:{{ image.tag }}">{{ image.tag }}</option>
                     {% endfor %}
                 </select>
