@@ -429,7 +429,7 @@ def trigger():
         send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing', emails=emails)
         # return jsonify({'error': 'Testing failed.'}), 500
 
-    # logger.info(f"Passed billing testing.")
+    # logger.info(f"Passed billing test.")
 
 
     logger.info(f"Tearing down test environment.")
