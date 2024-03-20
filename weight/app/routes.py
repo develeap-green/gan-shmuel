@@ -1,7 +1,7 @@
 import csv
 import json
 import os
-from flask import jsonify, render_template, request
+from flask import jsonify, request
 from sqlalchemy import desc
 from app import app, db
 from sqlalchemy.sql import text
@@ -12,18 +12,6 @@ from app.models import Transactions, ContainersRegistered
 from app.utils import load_weights, detect_file_format, create_directory_if_not_exists, create_file_if_not_exists
 from datetime import datetime
 import random
-
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-
-@app.route('/transactions')
-def get_transactions():
-    res = db.session.query(Transactions).all()
-    res = [r.to_dict() for r in res]
-    return res, 200
 
 
 @app.route('/weight')
