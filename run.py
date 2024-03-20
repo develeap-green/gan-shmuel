@@ -46,6 +46,8 @@ mail = Mail(app)
 COMMIT_MESSAGE = 'CI-commit'
 URL_WEIGHT = 'http://greenteam.hopto.org:8081/health'
 URL_BILLING = 'http://greenteam.hopto.org:8082/health'
+FILE_COMPOSE_DEV = './docker-compose.dev.yml'
+FILE_COMPOSE_PROD = './docker-compose.pro.yml'
 
 
 def delete_repo():
@@ -58,11 +60,11 @@ def delete_repo():
         pass
 
 
-def send_email(subject, html_page, stage):
+def send_email(subject, html_page, stage, emails):
     try:
-        recipients = ' '.join([email.split('@')[0] for email in EMAILS])
+        recipients = ' '.join([email.split('@')[0] for email in emails])
         html_body = render_template(html_page, recipients=recipients, stage=stage)
-        # msg = Message(subject, recipients=EMAILS, html=html_body)
+        # msg = Message(subject, recipients=emails, html=html_body)
         # mail.send(msg)
         logger.info(f"Email was sent successfully to {recipients}")
     except Exception as e:
@@ -91,13 +93,15 @@ def health():
 @app.route('/monitor', methods=['GET'])
 def monitor():
 
-    # Run the 'docker images' command
+    # Run the docker images command
     process = subprocess.Popen(['docker', 'images'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = process.communicate()
 
     if process.returncode != 0:
         return jsonify({'error': error.decode()}), 500
+    
 
+    # Extract all the last versions of billing and weight
     lines = output.decode().split('\n')[1:]
     images_weight = []
     images_billing = []
@@ -119,6 +123,8 @@ def monitor():
                     'created': parts[4] + ' ' + parts[5] + ' ' + parts[6]
                 })
 
+
+    # Check health routes
     weight_status = False
     try:
       response = requests.get(URL_WEIGHT)
@@ -136,8 +142,8 @@ def monitor():
         pass
 
     data = {
-        'weight_status': billing_status,
-        'billing_status': weight_status 
+        'weight_status': weight_status,
+        'billing_status': billing_status 
     }
 
     return render_template('monitor.html', data=data, images_weight=images_weight, images_billing=images_billing)
@@ -147,6 +153,7 @@ def monitor():
 def rollback():
     try:
 
+        # Get values from submit form
         weight_tag = int(request.form.get('weight_tag'))
         billing_tag = int(request.form.get('billing_tag'))
 
@@ -154,8 +161,7 @@ def rollback():
             return jsonify({'message': 'Keeping current version.'}), 200
 
 
-
-        # Check compose file to get last versions
+        # Check compose prod file to get last versions (to replace it with the new one)
         logger.info("Getting last version from dev compose file.")
         with open('./docker-compose.pro.yml', 'r') as file:
             compose_data = yaml.safe_load(file)
@@ -172,18 +178,20 @@ def rollback():
         # Replace production
         logger.info(f"Replacing production")
         FILE_COMPOSE_PROD = './docker-compose.pro.yml'
+
+        # Change versions in file with sed cmd
         change_version_w = subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_default_name}:{weight_tag + 1}/", FILE_COMPOSE_PROD])
         change_version_b = subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_deafult_name}:{billing_tag + 1}/", FILE_COMPOSE_PROD])
 
-
-        replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.rollback.yml", "up", "-d"])
+        # Run prod compose with updated version
+        replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])
         if replace_production.returncode != 0:
             logger.error(f"Replacing production process failed.")
-            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replacing production')
+            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replacing production' ,emails=EMAILS)
             return jsonify({'error': 'Replacing production process failed.'}), 500
 
 
-        send_email(subject='Rollback succeeded', html_page='success_email.html', stage='')
+        send_email(subject='Rollback succeeded', html_page='success_email.html', stage='' ,emails=EMAILS)
         return jsonify({'message': 'Rollback initiated successfully.'}), 200
 
     except Exception as e:
@@ -192,377 +200,37 @@ def rollback():
 
 
 
-
-data = {
-  "ref": "refs/heads/main",
-  "before": "c668f4e1158b53be784f277c4d775e118deb19fb",
-  "after": "c2901b9c104a2d5fdef14518de149b8fdf3bd47a",
-  "repository": {
-    "id": 771988013,
-    "node_id": "R_kgDOLgOaLQ",
-    "name": "gan-shmuel",
-    "full_name": "develeap-green/gan-shmuel",
-    "private": False,
-    "owner": {
-      "name": "develeap-green",
-      "email": '',
-      "login": "develeap-green",
-      "id": 163397731,
-      "node_id": "O_kgDOCb1AYw",
-      "avatar_url": "https://avatars.githubusercontent.com/u/163397731?v=4",
-      "gravatar_id": "",
-      "url": "https://api.github.com/users/develeap-green",
-      "html_url": "https://github.com/develeap-green",
-      "followers_url": "https://api.github.com/users/develeap-green/followers",
-      "following_url": "https://api.github.com/users/develeap-green/following{/other_user}",
-      "gists_url": "https://api.github.com/users/develeap-green/gists{/gist_id}",
-      "starred_url": "https://api.github.com/users/develeap-green/starred{/owner}{/repo}",
-      "subscriptions_url": "https://api.github.com/users/develeap-green/subscriptions",
-      "organizations_url": "https://api.github.com/users/develeap-green/orgs",
-      "repos_url": "https://api.github.com/users/develeap-green/repos",
-      "events_url": "https://api.github.com/users/develeap-green/events{/privacy}",
-      "received_events_url": "https://api.github.com/users/develeap-green/received_events",
-      "type": "Organization",
-      "site_admin": False
-    },
-    "html_url": "https://github.com/develeap-green/gan-shmuel",
-    "description": '',
-    "fork": False,
-    "url": "https://github.com/develeap-green/gan-shmuel",
-    "forks_url": "https://api.github.com/repos/develeap-green/gan-shmuel/forks",
-    "keys_url": "https://api.github.com/repos/develeap-green/gan-shmuel/keys{/key_id}",
-    "collaborators_url": "https://api.github.com/repos/develeap-green/gan-shmuel/collaborators{/collaborator}",
-    "teams_url": "https://api.github.com/repos/develeap-green/gan-shmuel/teams",
-    "hooks_url": "https://api.github.com/repos/develeap-green/gan-shmuel/hooks",
-    "issue_events_url": "https://api.github.com/repos/develeap-green/gan-shmuel/issues/events{/number}",
-    "events_url": "https://api.github.com/repos/develeap-green/gan-shmuel/events",
-    "assignees_url": "https://api.github.com/repos/develeap-green/gan-shmuel/assignees{/user}",
-    "branches_url": "https://api.github.com/repos/develeap-green/gan-shmuel/branches{/branch}",
-    "tags_url": "https://api.github.com/repos/develeap-green/gan-shmuel/tags",
-    "blobs_url": "https://api.github.com/repos/develeap-green/gan-shmuel/git/blobs{/sha}",
-    "git_tags_url": "https://api.github.com/repos/develeap-green/gan-shmuel/git/tags{/sha}",
-    "git_refs_url": "https://api.github.com/repos/develeap-green/gan-shmuel/git/refs{/sha}",
-    "trees_url": "https://api.github.com/repos/develeap-green/gan-shmuel/git/trees{/sha}",
-    "statuses_url": "https://api.github.com/repos/develeap-green/gan-shmuel/statuses/{sha}",
-    "languages_url": "https://api.github.com/repos/develeap-green/gan-shmuel/languages",
-    "stargazers_url": "https://api.github.com/repos/develeap-green/gan-shmuel/stargazers",
-    "contributors_url": "https://api.github.com/repos/develeap-green/gan-shmuel/contributors",
-    "subscribers_url": "https://api.github.com/repos/develeap-green/gan-shmuel/subscribers",
-    "subscription_url": "https://api.github.com/repos/develeap-green/gan-shmuel/subscription",
-    "commits_url": "https://api.github.com/repos/develeap-green/gan-shmuel/commits{/sha}",
-    "git_commits_url": "https://api.github.com/repos/develeap-green/gan-shmuel/git/commits{/sha}",
-    "comments_url": "https://api.github.com/repos/develeap-green/gan-shmuel/comments{/number}",
-    "issue_comment_url": "https://api.github.com/repos/develeap-green/gan-shmuel/issues/comments{/number}",
-    "contents_url": "https://api.github.com/repos/develeap-green/gan-shmuel/contents/{+path}",
-    "compare_url": "https://api.github.com/repos/develeap-green/gan-shmuel/compare/{base}...{head}",
-    "merges_url": "https://api.github.com/repos/develeap-green/gan-shmuel/merges",
-    "archive_url": "https://api.github.com/repos/develeap-green/gan-shmuel/{archive_format}{/ref}",
-    "downloads_url": "https://api.github.com/repos/develeap-green/gan-shmuel/downloads",
-    "issues_url": "https://api.github.com/repos/develeap-green/gan-shmuel/issues{/number}",
-    "pulls_url": "https://api.github.com/repos/develeap-green/gan-shmuel/pulls{/number}",
-    "milestones_url": "https://api.github.com/repos/develeap-green/gan-shmuel/milestones{/number}",
-    "notifications_url": "https://api.github.com/repos/develeap-green/gan-shmuel/notifications{?since,all,participating}",
-    "labels_url": "https://api.github.com/repos/develeap-green/gan-shmuel/labels{/name}",
-    "releases_url": "https://api.github.com/repos/develeap-green/gan-shmuel/releases{/id}",
-    "deployments_url": "https://api.github.com/repos/develeap-green/gan-shmuel/deployments",
-    "created_at": 1710411626,
-    "updated_at": "2024-03-17T12:56:07Z",
-    "pushed_at": 1710750244,
-    "git_url": "git://github.com/develeap-green/gan-shmuel.git",
-    "ssh_url": "git@github.com:develeap-green/gan-shmuel.git",
-    "clone_url": "https://github.com/develeap-green/gan-shmuel.git",
-    "svn_url": "https://github.com/develeap-green/gan-shmuel",
-    "homepage": '',
-    "size": 89,
-    "stargazers_count": 0,
-    "watchers_count": 0,
-    "language": "Python",
-    "has_issues": True,
-    "has_projects": True,
-    "has_downloads": True,
-    "has_wiki": True,
-    "has_pages": False,
-    "has_discussions": False,
-    "forks_count": 0,
-    "mirror_url": '',
-    "archived": False,
-    "disabled": False,
-    "open_issues_count": 0,
-    "license": {
-      "key": "mit",
-      "name": "MIT License",
-      "spdx_id": "MIT",
-      "url": "https://api.github.com/licenses/mit",
-      "node_id": "MDc6TGljZW5zZTEz"
-    },
-    "allow_forking": True,
-    "is_template": False,
-    "web_commit_signoff_required": False,
-    "topics": [
-
-    ],
-    "visibility": "public",
-    "forks": 0,
-    "open_issues": 0,
-    "watchers": 0,
-    "default_branch": "main",
-    "stargazers": 0,
-    "master_branch": "main",
-    "organization": "develeap-green",
-    "custom_properties": {
-
-    }
-  },
-  "pusher": {
-    "name": "DanArbiv",
-    "email": "107798538+DanArbiv@users.noreply.github.com"
-  },
-  "organization": {
-    "login": "develeap-green",
-    "id": 163397731,
-    "node_id": "O_kgDOCb1AYw",
-    "url": "https://api.github.com/orgs/develeap-green",
-    "repos_url": "https://api.github.com/orgs/develeap-green/repos",
-    "events_url": "https://api.github.com/orgs/develeap-green/events",
-    "hooks_url": "https://api.github.com/orgs/develeap-green/hooks",
-    "issues_url": "https://api.github.com/orgs/develeap-green/issues",
-    "members_url": "https://api.github.com/orgs/develeap-green/members{/member}",
-    "public_members_url": "https://api.github.com/orgs/develeap-green/public_members{/member}",
-    "avatar_url": "https://avatars.githubusercontent.com/u/163397731?v=4",
-    "description": ''
-  },
-  "sender": {
-    "login": "DanArbiv",
-    "id": 107798538,
-    "node_id": "U_kgDOBmzgCg",
-    "avatar_url": "https://avatars.githubusercontent.com/u/107798538?v=4",
-    "gravatar_id": "",
-    "url": "https://api.github.com/users/DanArbiv",
-    "html_url": "https://github.com/DanArbiv",
-    "followers_url": "https://api.github.com/users/DanArbiv/followers",
-    "following_url": "https://api.github.com/users/DanArbiv/following{/other_user}",
-    "gists_url": "https://api.github.com/users/DanArbiv/gists{/gist_id}",
-    "starred_url": "https://api.github.com/users/DanArbiv/starred{/owner}{/repo}",
-    "subscriptions_url": "https://api.github.com/users/DanArbiv/subscriptions",
-    "organizations_url": "https://api.github.com/users/DanArbiv/orgs",
-    "repos_url": "https://api.github.com/users/DanArbiv/repos",
-    "events_url": "https://api.github.com/users/DanArbiv/events{/privacy}",
-    "received_events_url": "https://api.github.com/users/DanArbiv/received_events",
-    "type": "User",
-    "site_admin": False
-  },
-  "created": False,
-  "deleted": False,
-  "forced": False,
-  "base_ref": '',
-  "compare": "https://github.com/develeap-green/gan-shmuel/compare/c668f4e1158b...c2901b9c104a",
-  "commits": [
-    {
-      "id": "e01664d5ed4316849b1a252357bf678986cdbab0",
-      "tree_id": "d0d5ec5c126e4f552def4718f67ababd0d72ee92",
-      "distinct": True,
-      "message": "Update",
-      "timestamp": "2024-03-17T20:57:00+07:00",
-      "url": "https://github.com/develeap-green/gan-shmuel/commit/e01664d5ed4316849b1a252357bf678986cdbab0",
-      "author": {
-        "name": "DanArbib",
-        "email": "arbibdan@gmail.com",
-        "username": "DanArbiv"
-      },
-      "committer": {
-        "name": "DanArbib",
-        "email": "arbibdan@gmail.com",
-        "username": "DanArbiv"
-      },
-      "added": [
-        "docker-compose.dev.yml"
-      ],
-      "removed": [
-        "docker-compose.bill-dev.yml",
-        "docker-compose.weight-dev.yml"
-      ],
-      "modified": [
-        "devops/app/routes.py"
-      ]
-    },
-    {
-      "id": "bacae0291d09e12066aaa3d958180961b7b38a17",
-      "tree_id": "385a60edca91c466fa6e28e515718f92bc8feb0a",
-      "distinct": True,
-      "message": "Merge branch 'main' of github.com:develeap-green/gan-shmuel",
-      "timestamp": "2024-03-17T20:59:48+07:00",
-      "url": "https://github.com/develeap-green/gan-shmuel/commit/bacae0291d09e12066aaa3d958180961b7b38a17",
-      "author": {
-        "name": "DanArbib",
-        "email": "arbibdan@gmail.com",
-        "username": "DanArbiv"
-      },
-      "committer": {
-        "name": "DanArbib",
-        "email": "arbibdan@gmail.com",
-        "username": "DanArbiv"
-      },
-      "added": [
-        "billing/.dockerignore",
-        "billing/Dockerfile",
-        "billing/README_Saturday.txt",
-        "billing/app/db_test.py",
-        "billing/app/models.py",
-        "billing/app/routes.py",
-        "billing/app/utils.py",
-        "billing/db-init/billingdb.sql",
-        "billing/docker-compose.yml",
-        "billing/requirements.txt",
-        "weight/.flaskenv",
-        "weight/CONTRIB.md",
-        "weight/Dockerfile",
-        "weight/README.md",
-        "weight/app/models.py",
-        "weight/app/routes.py",
-        "weight/compose.yaml",
-        "weight/data/containers1.csv",
-        "weight/data/containers2.csv",
-        "weight/data/spec.md",
-        "weight/db/db.sql",
-        "weight/requirements.txt"
-      ],
-      "removed": [
-        ".gitignore",
-        "weight/weight.py"
-      ],
-      "modified": [
-        "billing/app/__init__.py",
-        "billing/billing.py",
-        "weight/app/__init__.py"
-      ]
-    },
-    {
-      "id": "c10f554845e5638287262fa8319f76f7ed2a1bc7",
-      "tree_id": "c37f440102a970bb5f447056308db4838af7b0d8",
-      "distinct": True,
-      "message": "Update CI flow",
-      "timestamp": "2024-03-18T15:08:12+07:00",
-      "url": "https://github.com/develeap-green/gan-shmuel/commit/c10f554845e5638287262fa8319f76f7ed2a1bc7",
-      "author": {
-        "name": "DanArbib",
-        "email": "arbibdan@gmail.com",
-        "username": "DanArbiv"
-      },
-      "committer": {
-        "name": "DanArbib",
-        "email": "arbibdan@gmail.com",
-        "username": "DanArbiv"
-      },
-      "added": [
-        ".gitignore",
-        "devops/billing.env",
-        "devops/weight.env"
-      ],
-      "removed": [
-
-      ],
-      "modified": [
-        "devops/app/routes.py",
-        "devops/app/utils/utils.py",
-        "devops/docker-compose.yml",
-        "devops/nginx.conf",
-        "devops/requirements.txt",
-        "docker-compose.dev.yml",
-        "docker-compose.pro.yml"
-      ]
-    },
-    {
-      "id": "c2901b9c104a2d5fdef14518de149b8fdf3bd47a",
-      "tree_id": "3bafaf4948d611412b7137f8ac6a8566c6b73264",
-      "distinct": True,
-      "message": "Update CI flow",
-      "timestamp": "2024-03-18T15:23:55+07:00",
-      "url": "https://github.com/develeap-green/gan-shmuel/commit/c2901b9c104a2d5fdef14518de149b8fdf3bd47a",
-      "author": {
-        "name": "DanArbib",
-        "email": "arbibdan@gmail.com",
-        "username": "DanArbiv"
-      },
-      "committer": {
-        "name": "DanArbib",
-        "email": "arbibdan@gmail.com",
-        "username": "DanArbiv"
-      },
-      "added": [
-        "weight/env.example",
-        "weight/weight.py"
-      ],
-      "removed": [
-
-      ],
-      "modified": [
-        ".gitignore"
-      ]
-    }
-  ],
-  "head_commit": {
-    "id": "c2901b9c104a2d5fdef14518de149b8fdf3bd47a",
-    "tree_id": "3bafaf4948d611412b7137f8ac6a8566c6b73264",
-    "distinct": True,
-    "message": "Update CI flow",
-    "timestamp": "2024-03-18T15:23:55+07:00",
-    "url": "https://github.com/develeap-green/gan-shmuel/commit/c2901b9c104a2d5fdef14518de149b8fdf3bd47a",
-    "author": {
-      "name": "DanArbib",
-      "email": "arbibdan@gmail.com",
-      "username": "DanArbiv"
-    },
-    "committer": {
-      "name": "DanArbib",
-      "email": "arbibdan@gmail.com",
-      "username": "DanArbiv"
-    },
-    "added": [
-      "weight/env.example",
-      "weight/weight.py"
-    ],
-    "removed": [
-
-    ],
-    "modified": [
-      ".gitignore"
-    ]
-  }
-}
-
-
-
-
-
-
-
-@app.route('/trigger', methods=['GET'])
+@app.route('/trigger', methods=['POST'])
 def trigger():
-    # if 'Content-Type' not in request.headers or request.headers['Content-Type'] != 'application/json':
-    #     return jsonify({'status': 'error', 'message': 'Invalid Content-Type'}), 400
+    if 'Content-Type' not in request.headers or request.headers['Content-Type'] != 'application/json':
+        return jsonify({'status': 'error', 'message': 'Invalid Content-Type'}), 400
 
-    # data = request.json
-    # logger.info(data)
+    data = request.json
+    logger.info(data)
 
-    # Check branch
+    # Check if commit is in branch main
     ref = data.get('ref','')
     branch = ref.split('/')[-1]
     if branch != 'main':
         return jsonify({'status': 'success', 'message': 'Skipped push not to main branch.'}), 200
     
+    # Check if the commit was created by the CI to stop loop
     commits = data.get('commits','')
     for commit in commits:
         if commit.get('message') == COMMIT_MESSAGE:
             return jsonify({'status': 'success', 'message': 'Skipped CI push.'}), 200
 
     
-    # Check commits changes by the modified files 
+    # Check which branch commited the change and get emails
+    emails = []
     weight_changed = False
     billing_changed = False
-    commits = data.get('commits','')
     for commit in commits:
         added = commit.get('added')
         modified = commit.get('modified')
+        author = commit.get('author')
+        email = author.get('email')
+        emails.append(email)
 
         for file in added:
             if file.startswith("weight"):
@@ -578,17 +246,21 @@ def trigger():
             if file.startswith("billing"):
                 billing_changed = True
 
+    # Add the commiter mail to the dev emails list
+    emails.extend(EMAILS)
+
     if not weight_changed and not billing_changed:
             return jsonify({'status': 'success', 'message': 'Skipped CI push.'}), 200
 
 
-    # Run the 'docker images' command to get last version
+    # Run the docker images command to get last versions
     process = subprocess.Popen(['docker', 'images'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = process.communicate()
 
     if process.returncode != 0:
         return jsonify({'error': error.decode()}), 500
 
+    # Extract all the last versions of billing and weight
     lines = output.decode().split('\n')[1:]
     images_weight = []
     images_billing = []
@@ -609,21 +281,16 @@ def trigger():
                     tag = 1
                 images_billing.append(tag)
 
-
+    # Find the last version by number
     new_ver_weight = max(images_weight) if images_weight else 1
     new_ver_billing = max(images_billing) if images_billing else 1
 
-    # Clone the repository
+    # Pull from repository
     logger.info("Pulling git repository.")
-    git_rest = subprocess.run(['git', 'reset', '--hard', 'HEAD'])
-    repo_update = subprocess.run(['git', 'pull', '--force'])
+    subprocess.run(['git', 'reset', '--hard', 'HEAD'])
+    subprocess.run(['git', 'pull', '--force'])
 
-    if repo_update.returncode != 0:
-        logger.error(f"Pull repo process failed.")
-        send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Update repo stage')
-        return jsonify({'error': 'Clone process failed.'}), 500
-
-    # Check compose file to get last versions
+    # Check compose file to get last versions (to find and replace with sed)
     logger.info("Getting last version from dev compose file.")
     with open('./docker-compose.dev.yml', 'r') as file:
         compose_data = yaml.safe_load(file)
@@ -638,7 +305,7 @@ def trigger():
 
     # Build images
     if weight_changed:
-        logger.info(f"Starting a build process for weight.")
+        logger.info(f"Weight changed, Starting a build process for weight.")
 
          # Incresing version 
         weight_tag = f"{weight_default_name}:{new_ver_weight + 1}"
@@ -647,16 +314,15 @@ def trigger():
         weight_build = subprocess.run(["docker", "build", "-t", weight_tag, './weight'])
         if weight_build.returncode != 0:
             logger.error(f"Build process failed - Weight {weight_tag}.")
-            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Build stage weight')
+            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Build stage weight',emails=emails)
             return jsonify({'error': f"Build process failed - Weight {weight_tag}."}), 500
         
-        # Changing compose data to new version
-        FILE_COMPOSE_DEV = './docker-compose.dev.yml'
-        change_version_w = subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_default_name}:{new_ver_weight + 1}/", FILE_COMPOSE_DEV])
+        # Changing the compose file version to new version with sed cmd
+        subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_default_name}:{new_ver_weight + 1}/", FILE_COMPOSE_DEV])
 
-        
+
     if billing_changed:
-        logger.info(f"Starting a build process for billing.")
+        logger.info(f"Billing changed, Starting a build process for billing.")
 
         # Incresing version 
         billing_tag = f"{billing_deafult_name}:{new_ver_billing + 1}"
@@ -665,18 +331,18 @@ def trigger():
         billing_build = subprocess.run(["docker", "build", "-t", billing_tag, './billing'])
         if billing_build.returncode != 0:
             logger.error(f"Build process failed - Billing {billing_tag}.")
-            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Build stage billing')
+            send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Build stage billing',emails=emails)
             return jsonify({'error': f'Build process failed - Billing {billing_tag}.'}), 500
         
         # Changing compose data to new version
-        change_version_b = subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_deafult_name}:{new_ver_billing + 1}/", FILE_COMPOSE_DEV])
+        subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_deafult_name}:{new_ver_billing + 1}/", FILE_COMPOSE_DEV])
 
-    # Running testing env
+    # Running testing environment
     logger.info(f"Running test environment.")
     run_dev_env = subprocess.run(["docker", "compose", "-p", "testing", "-f", "docker-compose.dev.yml", "up", "-d"])
     if run_dev_env.returncode != 0:
         logger.error(f"Run testing environment process failed.")
-        send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Run testing environment')
+        send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Run testing environment',emails=emails)
         return jsonify({'error': 'Run testing environment process failed.'}), 500
 
     # # Run testing
@@ -684,7 +350,7 @@ def trigger():
     # # test = subprocess.run([ COMMEND 'exec', 'app', 'pytest'])
     # # if test.returncode != 0:
     # #     logger.error(f"Testing failed.")
-    # #     send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing')
+    # #     send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Testing stage billing', emails=emails)
     # #     return jsonify({'error': 'Testing failed.'}), 500
 
     logger.info(f"Tearing down test environment.")
@@ -692,25 +358,26 @@ def trigger():
     if stop_dev_env.returncode != 0:
         logger.error("Failed to stop running containers.")
 
-    logger.info(f"Removing test volume.")
-    stop_volume = subprocess.run(["docker", "volume", "rm", "testing_billing_database", "testing_weight_database"])
+    logger.info(f"Removing unused test volumes.")
+    subprocess.run(["docker", "volume", "rm", "testing_billing_database", "testing_weight_database"])
+
 
     # Replace production
     logger.info(f"Replacing production")
 
     # Replace version
-    FILE_COMPOSE_PROD = './docker-compose.pro.yml'
-    change_version_w = subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_default_name}:{new_ver_weight + 1}/", FILE_COMPOSE_PROD])
-    change_version_b = subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_deafult_name}:{new_ver_billing + 1}/", FILE_COMPOSE_PROD])
+    subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_default_name}:{new_ver_weight + 1}/", FILE_COMPOSE_PROD])
+    subprocess.run(["sed", "-i", f"s/{billing_deafult_name}:{ver_tag_b}/{billing_deafult_name}:{new_ver_billing + 1}/", FILE_COMPOSE_PROD])
 
+    # Run production with the new version
     replace_production = subprocess.run(["docker", "compose", "-f", "docker-compose.pro.yml", "up", "-d"])
     if replace_production.returncode != 0:
         logger.error(f"Replacing production process failed.")
-        send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replacing production')
+        send_email(subject='Deploy Failed', html_page='failed_email.html', stage='Replacing production',emails=emails)
         return jsonify({'error': 'Replacing production process failed.'}), 500
 
 
-    # send_email(subject='Deploy succeeded', html_page='success_email.html', stage='')
+    # send_email(subject='Deploy succeeded', html_page='success_email.html', stage='', emails=emails)
     return jsonify({'status': 'success', 'message': 'Deployment successful'}), 200
 
 
