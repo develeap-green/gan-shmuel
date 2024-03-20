@@ -44,7 +44,7 @@ services:
       - billing-network
     volumes:
       - ./billing/logs:/app/logs
-      - ./billing/in:/app/in
+      - ./billing/in:/app/billing/in
     depends_on:
       mysql-billing:
         condition: service_healthy
