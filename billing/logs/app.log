@@ -1,0 +1,47 @@
+2024-03-17 22:54:18,383 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.100.102.45:5000
+2024-03-17 22:54:18,383 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2024-03-17 22:54:18,384 - werkzeug - INFO -  * Restarting with stat
+2024-03-17 22:54:18,818 - werkzeug - WARNING -  * Debugger is active!
+2024-03-17 22:54:18,819 - werkzeug - INFO -  * Debugger PIN: 239-306-492
+2024-03-17 22:54:34,655 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.100.102.45:5000
+2024-03-17 22:54:34,655 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2024-03-17 22:54:34,656 - werkzeug - INFO -  * Restarting with stat
+2024-03-17 22:54:35,061 - werkzeug - WARNING -  * Debugger is active!
+2024-03-17 22:54:35,061 - werkzeug - INFO -  * Debugger PIN: 239-306-492
+2024-03-17 22:55:02,009 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.100.102.45:5000
+2024-03-17 22:55:02,010 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2024-03-17 22:55:02,010 - werkzeug - INFO -  * Restarting with stat
+2024-03-17 22:55:02,392 - werkzeug - WARNING -  * Debugger is active!
+2024-03-17 22:55:02,392 - werkzeug - INFO -  * Debugger PIN: 239-306-492
+2024-03-17 20:55:27,486 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.22.0.3:5000
+2024-03-17 20:55:27,486 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2024-03-17 20:55:27,486 - werkzeug - INFO -  * Restarting with stat
+2024-03-17 20:55:27,876 - werkzeug - WARNING -  * Debugger is active!
+2024-03-17 20:55:27,876 - werkzeug - INFO -  * Debugger PIN: 135-209-367
+2024-03-17 20:56:06,759 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:56:06] "[31m[1mGET /truck HTTP/1.1[0m" 405 -
+2024-03-17 20:56:07,902 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:56:07] "[31m[1mGET /truck HTTP/1.1[0m" 405 -
+2024-03-17 20:56:08,115 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:56:08] "[31m[1mGET /truck HTTP/1.1[0m" 405 -
+2024-03-17 20:56:08,306 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:56:08] "[31m[1mGET /truck HTTP/1.1[0m" 405 -
+2024-03-17 20:56:08,501 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:56:08] "[31m[1mGET /truck HTTP/1.1[0m" 405 -
+2024-03-17 20:56:11,534 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:56:11] "GET /tables HTTP/1.1" 200 -
+2024-03-17 20:57:03,340 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:57:03] "[31m[1mGET /truck HTTP/1.1[0m" 405 -
+2024-03-17 20:57:07,228 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:57:07] "[33mGET /truck/10002 HTTP/1.1[0m" 404 -
+2024-03-17 20:57:09,432 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:57:09] "[33mGET /truck/10002 HTTP/1.1[0m" 404 -
+2024-03-17 20:57:09,606 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:57:09] "[33mGET /truck/10002 HTTP/1.1[0m" 404 -
+2024-03-17 20:57:09,795 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:57:09] "[33mGET /truck/10002 HTTP/1.1[0m" 404 -
+2024-03-17 20:57:09,964 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:57:09] "[33mGET /truck/10002 HTTP/1.1[0m" 404 -
+2024-03-17 20:57:10,132 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:57:10] "[33mGET /truck/10002 HTTP/1.1[0m" 404 -
+2024-03-17 20:57:10,314 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:57:10] "[33mGET /truck/10002 HTTP/1.1[0m" 404 -
+2024-03-17 20:57:10,507 - werkzeug - INFO - 172.22.0.1 - - [17/Mar/2024 20:57:10] "[33mGET /truck/10002 HTTP/1.1[0m" 404 -

@@ -3,29 +3,26 @@ services:
 
   # Weight
   weight:
-    image: weight-image:0
-    ports:
-      - "8081:5000"
+    image: weight-image:4
     env_file:
-      - ./weight/weight.env
+      - ./weight.env
     restart: always
     networks:
-      - weight-network
+      - test-network
     depends_on:
       mysql-weight:
         condition: service_healthy
 
   mysql-weight:
     image: mysql:8.3
-    hostname: mysql-weight
     env_file:
-      - ./weight/weight.env
+      - ./weight.env
     restart: always
     networks:
-      - weight-network
+      - test-network
     volumes:
-      - weight_db_data:/var/lib/mysql
       - ./weight/db:/docker-entrypoint-initdb.d
+      - testing_weight_database:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 30s 
@@ -34,16 +31,14 @@ services:
 
   # Billing
   billing:
-    image: billing-image:0
-    ports:
-      - "8082:5000"
+    image: billing-image:4
     env_file:
-      - ./billing/billing.env
+      - ./billing.env
     restart: always
     networks:
-      - billing-network
+      - test-network
     volumes:
-      - ./billing/logs:/app/logs
+      - ./billing/logs:/app/billing/logs
       - ./billing/in:/app/billing/in
     depends_on:
       mysql-billing:
@@ -51,26 +46,23 @@ services:
 
   mysql-billing:
     image: mysql:8.3
-    hostname: mysql-billing
     env_file:
-      - ./billing/billing.env
+      - ./billing.env
     restart: always
     networks:
-      - billing-network
+      - test-network
     volumes:
-      - ./billing/db:/docker-entrypoint-initdb.d
-      - db-data:/var/lib/mysql
+      - ./billing/db-init:/docker-entrypoint-initdb.d
+      - testing_billing_database:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 30s 
       retries: 20 
-
+      
 
 volumes:
-  weight_db_data:
-  db-data:
-  logs:
+  testing_weight_database:
+  testing_billing_database:
 
 networks:
-  billing-network:
-  weight-network:
+  test-network:

@@ -205,6 +205,7 @@ def test_valid_item_2():
     assert r.status_code == 201
     r = r.json()
     response = requests.get(f"{base_url2}/item/T-{truck_id}")
+    
     assert response.status_code == 200
 
 
