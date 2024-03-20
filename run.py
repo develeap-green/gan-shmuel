@@ -179,7 +179,6 @@ def rollback():
 
         # Replace production
         logger.info(f"Replacing production")
-        FILE_COMPOSE_PROD = './docker-compose.pro.yml'
 
         # Change versions in file with sed cmd
         subprocess.run(["sed", "-i", f"s/{weight_default_name}:{ver_tag_w}/{weight_tag}/", FILE_COMPOSE_PROD])
@@ -298,11 +297,9 @@ def trigger():
         compose_data = yaml.safe_load(file)
 
     weight = compose_data['services']['weight']['image']
-    weight_default_name = weight.split(':')[0]
     ver_tag_w = int(weight.split(':')[1])
 
     billing = compose_data['services']['billing']['image']
-    billing_deafult_name = billing.split(':')[0]
     ver_tag_b = int(billing.split(':')[1])
 
     # Build images
@@ -366,6 +363,17 @@ def trigger():
 
     # Replace production
     logger.info(f"Replacing production")
+
+    # Check compose file to get last versions (to find and replace with sed)
+    logger.info("Getting last version from dev compose file.")
+    with open('./docker-compose.pro.yml', 'r') as file:
+        compose_data = yaml.safe_load(file)
+
+    weight = compose_data['services']['weight']['image']
+    ver_tag_w = int(weight.split(':')[1])
+
+    billing = compose_data['services']['billing']['image']
+    ver_tag_b = int(billing.split(':')[1])
 
     # Replace version
     logger.info(f"s/{WEIGHT_IMAGE}:{ver_tag_w}/{WEIGHT_IMAGE}:{new_ver_weight + 1}/")
