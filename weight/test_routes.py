@@ -1,8 +1,8 @@
+from datetime import datetime
 from http import HTTPStatus
 import pytest
 import json
 from app import app, db, routes
-import requests
 from app.models import ContainersRegistered, Transactions
 import requests
 from random import sample
@@ -22,9 +22,24 @@ def base_url():
 
 
 def test_retrieve_weight_list_success(base_url):
-    url = f"{base_url}/weight?filter=in,out&from=20230101000000&to=20240101000000"
+    url = f"{base_url}/weight?filter=in,out&from=20230101000000&to=20250101000000"
     response = requests.get(url)
     assert response.status_code == 200
+
+    # Parse the response JSON
+    data = response.json()
+
+    # Check if data is either an empty list or a list of transactions
+    assert isinstance(data, list) or data == []
+
+    # # If data is not empty, iterate over each transaction in the response and check the fields
+    # if data:
+    #     for transaction in data:
+    #         assert datetime.strptime(transaction["datetime"], "%Y-%m-%d %H:%M:%S") >= datetime(2023, 1, 1, 0, 0, 0)
+    #         assert datetime.strptime(transaction["datetime"], "%Y-%m-%d %H:%M:%S") <= datetime(2025, 1, 1, 0, 0, 0)
+
+    #         # Ensure 'containers' is a list
+    #         assert isinstance(transaction["containers"], list)
 
 
 def test_retrieve_weight_list_bad_values(base_url):
@@ -93,6 +108,22 @@ def test_upload_batch_weight_success(base_url):
     #     db.session.query(ContainersRegistered).filter_by(container_id="C-001").delete()
     #     db.session.query(ContainersRegistered).filter_by(container_id="C-002").delete()
     #     db.session.commit()
+
+
+def test_get_unknown_containers_with_data(base_url):
+    # Send a GET request to the route
+    response = requests.get(f"{base_url}/unknown")
+
+    # Check the response status code
+    if response.text.strip() == "":
+        # If the response content is empty, expect status code 400
+        assert response.status_code == 404
+    else:
+        # Parse the response content as JSON
+        data = response.json()
+        # If it's a JSON list, expect status code 200
+        assert isinstance(data, list)
+        assert response.status_code == 200
 
 
 base_url2 = 'http://localhost:5000'
@@ -174,4 +205,157 @@ def test_valid_item_2():
     assert r.status_code == 201
     r = r.json()
     response = requests.get(f"{base_url2}/item/T-{truck_id}")
+    
     assert response.status_code == 200
+
+
+# DIRECTIONS
+
+def test_in_after_in_with_force():
+    truck_id = ''.join(sample(string.ascii_letters, 4))
+    random_weight = random.randint(1, 1000)
+    r = requests.post(f"{base_url2}/weight", json={
+        "direction": "in",
+        "truck": f"T-{truck_id}",
+        "containers": "c1,c2",
+        "weight": random_weight,
+        "unit": "kg",
+        "force": True,
+        "produce": "Apples"
+    })
+    assert r.status_code == 201
+    r1 = requests.post(f"{base_url2}/weight", json={
+        "direction": "in",
+        "truck": f"T-{truck_id}",
+        "containers": "c1,c2",
+        "weight": random_weight,
+        "unit": "kg",
+        "force": True,
+        "produce": "Apples"
+    })
+    assert r1.status_code == 201
+
+
+def test_in_after_in_without_force():
+    truck_id = ''.join(sample(string.ascii_letters, 4))
+    random_weight = random.randint(1, 1000)
+    r = requests.post(f"{base_url2}/weight", json={
+        "direction": "in",
+        "truck": f"T-{truck_id}",
+        "containers": "c1,c2",
+        "weight": random_weight,
+        "unit": "kg",
+        "produce": "Apples"
+    })
+    assert r.status_code == 400
+
+
+def test_none_after_in_results_error():
+    container_id = ''.join(sample(string.ascii_letters, 4))
+    random_weight = random.randint(1, 1000)
+    r = requests.post(f"{base_url2}/weight", json={
+        "direction": "none",
+        "containers": f"C-{container_id}",
+        "weight": random_weight,
+        "unit": "kg",
+        "produce": "Apples"
+    })
+    assert r.status_code == 400
+
+
+def test_out_after_in_success():
+    truck_id = ''.join(sample(string.ascii_letters, 4))
+    random_weight = random.randint(1, 1000)
+    r1 = requests.post(f"{base_url2}/weight", json={
+        "direction": "in",
+        "truck": f"T-{truck_id}",
+        "containers": "c1,c2",
+        "weight": random_weight,
+        "unit": "kg",
+        "force": True,
+        "produce": "Apples"
+    })
+    assert r1.status_code == 201
+
+    r = requests.post(f"{base_url2}/weight", json={
+        "direction": "out",
+        "truck": f"T-{truck_id}",
+        "containers": "c1,c2",
+        "weight": random_weight,
+        "unit": "kg",
+        "force": True,
+        "produce": "Apples"
+    })
+    assert r.status_code == 201
+
+
+def test_out_without_in_before_failure():
+    truck_id = ''.join(sample(string.ascii_letters, 4))
+    random_weight = random.randint(1, 1000)
+    r1 = requests.post(f"{base_url2}/weight", json={
+        "direction": "out",
+        "truck": f"T-{truck_id}",
+        "containers": "c1,c2",
+        "weight": random_weight,
+        "unit": "kg",
+        "produce": "Apples"
+    })
+    assert r1.status_code == 400
+
+
+def test_out_after_out_force_false():
+    random_weight = random.randint(1, 1000)
+    test_dict2 = {'direction': "out", 'truck': "T-12345",
+                  'weight': random_weight, "unit": "kg", "produce": "Apples", "force": False}
+    r1 = requests.post(f"{base_url2}/weight", json=test_dict2)
+    assert r1.status_code == 400
+    test_dict3 = {'direction': "out", 'truck': "T-12345",
+                  'weight': random_weight, "unit": "kg", "produce": "Apples", "force": False}
+    r2 = requests.post(f"{base_url2}/weight", json=test_dict3)
+    assert r2.status_code == 400
+
+
+def test_out_after_out_force_true():
+    random_weight = random.randint(1, 1000)
+    test_dict1 = {'direction': "in", 'truck': "T-12345",
+                  'weight': random_weight, "unit": "kg", "produce": "Apples", "force": True}
+    r1 = requests.post(f"{base_url2}/weight", json=test_dict1)
+    assert r1.status_code == 500
+    test_dict2 = {'direction': "out", 'truck': "T-12345",
+                  'weight': random_weight, "unit": "kg", "produce": "Apples", "force": True}
+    r2 = requests.post(f"{base_url2}/weight", json=test_dict2)
+    assert r2.status_code == 201
+    test_dict3 = {'direction': "out", 'truck': "T-12345",
+                  'weight': random_weight, "unit": "kg", "produce": "Apples", "force": True}
+    r3 = requests.post(f"{base_url2}/weight", json=test_dict3)
+    assert r3.status_code == 201
+
+    # WRONG_VALUES_IN
+
+
+def test_out_after_out_force_true():
+    truck_id = ''.join(sample(string.ascii_letters, 4))
+    random_weight = random.randint(1, 1000)
+    test_dict1 = {'direction': "in", 'truck': f"T-{truck_id}"}
+    r1 = requests.post(f"{base_url2}/weight", json=test_dict1)
+    assert r1.status_code == 500
+    test_dict1 = {'direction': "in",
+                  'truck': f"T-{truck_id}", 'weight': random_weight}
+    r1 = requests.post(f"{base_url2}/weight", json=test_dict1)
+    assert r1.status_code == 500
+    test_dict1 = {'direction': "in", 'truck': f"T-{truck_id}",
+                  'weight': random_weight, "unit": "kg"}
+    r1 = requests.post(f"{base_url2}/weight", json=test_dict1)
+    assert r1.status_code == 500
+    test_dict1 = {'direction': "in", 'truck': f"T-{truck_id}",
+                  'weight': random_weight, "unit": "kg", "produce": "Apples"}
+    r1 = requests.post(f"{base_url2}/weight", json=test_dict1)
+    assert r1.status_code == 500
+
+
+def test_no_product_name_results_succes():
+    random_weight = random.randint(1, 1000)
+    test_dict3 = {'direction': "out", 'truck': "T-12345",
+                  'weight': random_weight, "unit": "kg", "force": True}
+    r3 = requests.post(f"{base_url2}/weight", json=test_dict3)
+    assert r3.status_code == 201

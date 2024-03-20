@@ -13,8 +13,8 @@ services:
     restart: always
     # healthcheck:
     #   test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-    #   timeout: 5s 
-    #   retries: 20 
+    #   timeout: 5s
+    #   retries: 20
 
   api:
     build: .
@@ -25,9 +25,8 @@ services:
       - db
       # db:
       #  condition: service_healthy
-
-
+    volumes:
+      - ./data:/app/in
 
 volumes:
   weight_db_data:
-

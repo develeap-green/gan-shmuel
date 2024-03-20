@@ -1,3 +1,6 @@
+import csv
+import json
+import os
 from flask import jsonify, request
 from sqlalchemy import desc
 from app import app, db
@@ -6,7 +9,7 @@ import logging
 from http import HTTPStatus
 from datetime import datetime
 from app.models import Transactions, ContainersRegistered
-from app.utils import load_weights
+from app.utils import load_weights, detect_file_format, create_directory_if_not_exists, create_file_if_not_exists
 from datetime import datetime
 import random
 
@@ -54,7 +57,7 @@ def post_transaction():
             f"no data in request body")
         return {"error": "please provide required parameters in the request body"}, HTTPStatus.BAD_REQUEST
 
-    if data['truck'] and not data['truck'].startswith('T-'):
+    if data.get('truck') and not data['truck'].startswith('T-'):
         logging.error(
             f"Attempted registering truck with invalid license prefixed: {data['truck']}")
         return {"error": "truck license must be prefixed"}, HTTPStatus.BAD_REQUEST
@@ -100,12 +103,19 @@ def post_transaction():
                 logging.error(error)
                 return {"error": error}, HTTPStatus.BAD_REQUEST
 
+            container_id = data['containers']
+            weight = int(data['weight'])
+            unit = data['unit']
+
             new_container = ContainersRegistered(
-                container_id=data['containers'], weight=data['weight'], unit=data['unit'])
-            db.seesion.add(new_container)
+                container_id=container_id,
+                weight=weight,
+                unit=unit)
+
+            db.session.add(new_container)
             db.session.commit()
 
-            return new_container, HTTPStatus.CREATED
+            return {"message": "new container has been added"}, HTTPStatus.CREATED
 
         # remove weight of cantainer from data[weight] and add to neto
         session_id = random.randrange(1001, 9999999)
@@ -114,7 +124,7 @@ def post_transaction():
                                   containers=container.container_id,
                                   bruto=data["weight"],
                                   neto=data['weight'] - container.weight,
-                                  produce=data['produce'],
+                                  produce=data.get("produce") or None,
                                   session_id=session_id)
         db.session.add(none_trans)
         db.session.commit()
@@ -140,18 +150,17 @@ def post_transaction():
         else:
             containers = ''
 
-        containers = db.session.query(ContainersRegistered).filter(
+        db_containers = db.session.query(ContainersRegistered).filter(
             ContainersRegistered.container_id.in_(containers)).all()
 
+        # even if force should be correct to hold the prev session
         session_id = last_row.session_id
-
         truck_tara = int(data['weight'])
+        weights = [c.weight for c in db_containers]
 
-        weights = [c.weight for c in containers]
-
-        if all(isinstance(w, int) for w in weights):
+        if len(weights) > 0 and all(isinstance(w, int) for w in weights) and len(containers) == len(db_containers):
             tara_containers = sum(weights)
-            neto = truck_tara - int(tara_containers)
+            neto = last_row.bruto - truck_tara - int(tara_containers)
         else:
             tara_containers = None
             neto = None
@@ -260,20 +269,50 @@ def get_session(id):
 
 
 @app.route('/batch-weight', methods=['POST'])
-def upload_batch_weight():
-
+def batch_weight():
+    CSV_FILENAME = 'weights.csv'
+    JSON_FILENAME = 'weights.json'
     file_content = request.data
 
     if not file_content:
         logging.error('No file data found in request body')
         return {'error': 'No file data found in request body'}, HTTPStatus.BAD_REQUEST
 
-    try:
-        return load_weights(file_content)
+    # Determine file format
+    file_format = detect_file_format(file_content)
 
+    if file_format == 'csv':
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], CSV_FILENAME)
+        create_directory_if_not_exists(app.config['UPLOAD_FOLDER'])
+        create_file_if_not_exists(filepath)
+    elif file_format == 'json':
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], JSON_FILENAME)
+        create_directory_if_not_exists(app.config['UPLOAD_FOLDER'])
+        create_file_if_not_exists(filepath)
+    else:
+        error_message = "Unsupported file format. Please provide a CSV or JSON file."
+        logging.error(error_message)
+        return {'error': error_message}, HTTPStatus.BAD_REQUEST
+    try:
+        with open(filepath, 'wb') as f:
+            f.write(file_content)
+    except Exception as e:
+        return jsonify({'error': f'Failed to save file: {str(e)}'}), 500
+
+    try:
+        return load_weights(filepath, file_format)
     except Exception as e:
         logging.error(str(e))
         return {'error': str(e)}, HTTPStatus.BAD_REQUEST
+
+
+def ensure_id_prefix(data):
+    for item in data:
+        id_value = item['id']
+        # Ensure the ID is prefixed with 'C-'
+        if not id_value.startswith('C-'):
+            item['id'] = 'C-' + id_value
+    return data
 
 
 @app.route('/unknown')
